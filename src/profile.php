@@ -101,6 +101,7 @@ require_once 'includes/header.php';
             <input type="text" name="username" required value="<?= htmlspecialchars($user['username']) ?>">
         </div>
 
+        
         <div class="form-group">
             <label><?= htmlspecialchars(t('profile.avatar')) ?></label>
             <input type="file" name="avatar" accept="image/*">
