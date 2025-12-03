@@ -32,9 +32,6 @@ CREATE INDEX IF NOT EXISTS idx_media_title ON media_items(title);
 CREATE INDEX IF NOT EXISTS idx_media_user_created ON media_items(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_media_type ON media_items(type);
 CREATE INDEX IF NOT EXISTS idx_media_user_type ON media_items(user_id, type);
-CREATE INDEX IF NOT EXISTS idx_likes_media ON likes(media_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id, status);
-CREATE INDEX IF NOT EXISTS idx_friendships_receiver ON friendships(receiver_id, status);
 
 -- Лайки
 CREATE TABLE IF NOT EXISTS likes (
@@ -53,3 +50,7 @@ CREATE TABLE IF NOT EXISTS friendships (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(requester_id, receiver_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_likes_media ON likes(media_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id, status);
+CREATE INDEX IF NOT EXISTS idx_friendships_receiver ON friendships(receiver_id, status);

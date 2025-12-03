@@ -5,7 +5,10 @@ $host = getenv('DB_HOST');
 $db   = getenv('DB_NAME');
 $user = getenv('DB_USER');
 $pass = getenv('DB_PASS');
-$dsn  = "pgsql:host=$host;port=5432;dbname=$db;";
+
+// Для Render и похожих облаков требуется SSL-подключение к PostgreSQL,
+// поэтому явно указываем sslmode=require.
+$dsn  = "pgsql:host=$host;port=5432;dbname=$db;sslmode=require";
 
 try {
     $pdo = new PDO($dsn, $user, $pass, [

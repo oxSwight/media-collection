@@ -34,7 +34,9 @@ if ($myId) {
             </a>
             <ul class="nav-links">
                 <?php if ($myId): ?>
-                    
+                    <!-- Афиша (видят все залогиненные) -->
+                    <li><a href="afisha.php"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
+
                     <!-- Друзья (видят все) -->
                     <li><a href="friends.php"><?= htmlspecialchars(t('nav.friends')) ?></a></li>
                     
