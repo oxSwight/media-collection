@@ -10,6 +10,14 @@ if (!isset($_SESSION['user_id'])) {
 $error = '';
 $type = $_POST['type'] ?? 'movie';
 
+// Предзаполнение из афиши (GET параметры)
+$fromAfisha = isset($_GET['from_afisha']);
+$prefillTitle = $fromAfisha ? urldecode($_GET['title'] ?? '') : '';
+$prefillAuthor = $fromAfisha ? urldecode($_GET['author'] ?? '') : '';
+$prefillYear = $fromAfisha ? ($_GET['year'] ?? '') : '';
+$prefillImageUrl = $fromAfisha ? urldecode($_GET['image_url'] ?? '') : '';
+$prefillReview = $fromAfisha ? urldecode($_GET['review'] ?? '') : '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_valid_csrf_token($_POST['_token'] ?? null);
 
@@ -35,10 +43,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = t('item.title_required');
     } else {
         $imagePath = null;
+        
+        // Обработка загруженного файла
         if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
             [$imagePath, $uploadError] = handle_image_upload($_FILES['image']);
             if ($uploadError) {
                 $error = $uploadError;
+            }
+        }
+        // Обработка изображения по URL из афиши
+        elseif (isset($_POST['image_url']) && !empty(trim($_POST['image_url']))) {
+            $imageUrl = trim($_POST['image_url']);
+            if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+                // Пытаемся скачать изображение и сохранить локально
+                $ch = curl_init($imageUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 3,
+                    CURLOPT_TIMEOUT => 10,
+                    CURLOPT_USERAGENT => 'MediaLib/1.0',
+                ]);
+                $imageData = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($imageData !== false && $httpCode === 200 && strlen($imageData) > 0) {
+                    // Определяем расширение
+                    $ext = 'jpg';
+                    $urlPath = parse_url($imageUrl, PHP_URL_PATH);
+                    if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $urlPath, $matches)) {
+                        $ext = strtolower($matches[1]);
+                        if ($ext === 'jpeg') $ext = 'jpg';
+                    }
+                    
+                    $filename = 'img_' . uniqid() . '.' . $ext;
+                    $uploadDir = __DIR__ . '/uploads/';
+                    
+                    // Проверяем, существует ли директория
+                    if (!is_dir($uploadDir)) {
+                        @mkdir($uploadDir, 0775, true);
+                    }
+                    
+                    $filePath = $uploadDir . $filename;
+                    
+                    if (file_put_contents($filePath, $imageData) !== false) {
+                        $imagePath = 'uploads/' . $filename;
+                    } else {
+                        // Если не удалось сохранить локально, сохраняем URL
+                        $imagePath = $imageUrl;
+                    }
+                } else {
+                    // Если не удалось скачать, сохраняем URL напрямую
+                    $imagePath = $imageUrl;
+                }
+            } else {
+                $imagePath = $imageUrl; // Сохраняем как есть, если это не валидный URL
             }
         }
 
@@ -85,9 +145,16 @@ require_once 'includes/header.php';
 
         <form action="add_item.php" method="POST" enctype="multipart/form-data">
             <?= csrf_input(); ?>
+            <?php if ($fromAfisha): ?>
+                <div style="background: #e3f2fd; padding: 12px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+                    <strong>ℹ️ <?= htmlspecialchars(t('item.from_afisha')) ?></strong><br>
+                    <small><?= htmlspecialchars(t('item.from_afisha_desc')) ?></small>
+                </div>
+            <?php endif; ?>
+
             <div class="form-group">
                 <label><?= htmlspecialchars(t('item.title')) ?></label>
-                <input type="text" name="title" required placeholder="np. Matrix" value="<?= htmlspecialchars($_POST['title'] ?? '') ?>">
+                <input type="text" name="title" required placeholder="np. Matrix" value="<?= htmlspecialchars($_POST['title'] ?? $prefillTitle) ?>">
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -100,13 +167,13 @@ require_once 'includes/header.php';
                 </div>
                 <div class="form-group">
                     <label><?= htmlspecialchars(t('item.year')) ?></label>
-                    <input type="number" name="year" value="<?= htmlspecialchars($_POST['year'] ?? '2024') ?>">
+                    <input type="number" name="year" value="<?= htmlspecialchars($_POST['year'] ?? ($prefillYear ?: date('Y'))) ?>">
                 </div>
             </div>
 
             <div class="form-group">
                 <label><?= htmlspecialchars(t('item.author')) ?></label>
-                <input type="text" name="author" required placeholder="np. Wachowski" value="<?= htmlspecialchars($_POST['author'] ?? '') ?>">
+                <input type="text" name="author" required placeholder="np. Wachowski" value="<?= htmlspecialchars($_POST['author'] ?? $prefillAuthor) ?>">
             </div>
 
             <div class="form-group">
@@ -116,12 +183,22 @@ require_once 'includes/header.php';
 
             <div class="form-group">
                 <label><?= htmlspecialchars(t('item.image')) ?></label>
+                <?php if ($fromAfisha && $prefillImageUrl): ?>
+                    <div style="margin-bottom: 10px;">
+                        <img src="<?= htmlspecialchars($prefillImageUrl) ?>" alt="Poster" style="max-width: 200px; max-height: 300px; border-radius: 5px; border: 2px solid #dfe6e9;">
+                        <input type="hidden" name="image_url" value="<?= htmlspecialchars($prefillImageUrl) ?>">
+                        <p style="font-size: 0.85em; color: #636e72; margin-top: 5px;"><?= htmlspecialchars(t('item.image_from_afisha')) ?></p>
+                    </div>
+                <?php endif; ?>
                 <input type="file" name="image" accept="image/*">
+                <?php if ($fromAfisha && $prefillImageUrl): ?>
+                    <p style="font-size: 0.85em; color: #636e72; margin-top: 5px;"><?= htmlspecialchars(t('item.image_upload_optional')) ?></p>
+                <?php endif; ?>
             </div>
 
             <div class="form-group">
                 <label><?= htmlspecialchars(t('item.review')) ?></label>
-                <textarea name="review" rows="4"><?= htmlspecialchars($_POST['review'] ?? '') ?></textarea>
+                <textarea name="review" rows="4" placeholder="<?= htmlspecialchars(t('item.review_placeholder')) ?>"><?= htmlspecialchars($_POST['review'] ?? $prefillReview) ?></textarea>
             </div>
 
             <div style="display: flex; gap: 10px;">

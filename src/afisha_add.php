@@ -1,5 +1,5 @@
 <?php
-// src/afisha_add.php - добавить фильм из афиши в личную коллекцию
+// src/afisha_add.php - перенаправление на форму добавления с предзаполненными данными из афиши
 
 require_once 'includes/init.php';
 
@@ -15,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_valid_csrf_token($_POST['_token'] ?? null);
 
-$myId = (int)$_SESSION['user_id'];
 $upcomingId = (int)($_POST['upcoming_id'] ?? 0);
 
 if ($upcomingId <= 0) {
@@ -34,45 +33,32 @@ if (!$movie) {
 }
 
 // Проверяем, нет ли уже такого названия в коллекции пользователя
+$myId = (int)$_SESSION['user_id'];
 $check = $pdo->prepare("SELECT id FROM media_items WHERE user_id = ? AND type = 'movie' AND LOWER(title) = LOWER(?)");
 $check->execute([$myId, $movie['title']]);
 if ($check->fetchColumn()) {
-    header('Location: index.php');
+    header('Location: index.php?msg=already_exists');
     exit;
 }
 
-// Вставляем в media_items
-$insert = $pdo->prepare("
-    INSERT INTO media_items (user_id, title, type, author_director, release_year, rating, image_path, review)
-    VALUES (?, ?, 'movie', ?, ?, ?, ?, ?)
-");
-
-$year = null;
+// Формируем год из release_date
+$year = '';
 if (!empty($movie['release_date'])) {
     $year = (int)date('Y', strtotime($movie['release_date']));
 }
 
-// Рейтинг по умолчанию 5 (средняя оценка), пользователь потом может изменить через редактирование
-// БД требует rating BETWEEN 1 AND 10, поэтому нельзя использовать 0
-$rating = 5;
+// Перенаправляем на форму добавления с предзаполненными данными через GET параметры
+$params = [
+    'from_afisha' => '1',
+    'title' => urlencode($movie['title']),
+    'author' => urlencode($movie['original_title'] ?: ''),
+    'year' => $year,
+    'image_url' => urlencode($movie['poster_url'] ?? ''),
+    'review' => urlencode($movie['overview'] ?? ''),
+];
 
-$insert->execute([
-    $myId,
-    $movie['title'],
-    $movie['original_title'] ?: '',
-    $year,
-    $rating,
-    $movie['poster_url'],
-    $movie['overview'] ?? '',
-]);
-
-$mediaId = (int)$pdo->lastInsertId();
-
-// Логируем активность
-$act = $pdo->prepare("INSERT INTO activities (user_id, media_id, type) VALUES (?, ?, 'add_item')");
-$act->execute([$myId, $mediaId]);
-
-header('Location: index.php?msg=added');
+$queryString = http_build_query($params);
+header('Location: add_item.php?' . $queryString);
 exit;
 
 

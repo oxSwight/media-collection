@@ -71,6 +71,11 @@ return [
         'updated_success' => 'Updated successfully!',
         'delete_confirm' => 'Delete?',
         'not_found' => 'Item not found or access denied.',
+        'from_afisha' => 'Adding movie from Afisha',
+        'from_afisha_desc' => 'Data from Afisha has been pre-filled. You can edit it before saving.',
+        'image_from_afisha' => 'Poster from Afisha (will be saved automatically)',
+        'image_upload_optional' => 'You can also upload your own image, which will replace the poster from Afisha.',
+        'review_placeholder' => 'Write your review or notes about this movie/book...',
     ],
     'profile' => [
         'title' => 'Profile',

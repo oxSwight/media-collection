@@ -71,6 +71,11 @@ return [
         'updated_success' => 'Zaktualizowano pomyślnie!',
         'delete_confirm' => 'Usunąć?',
         'not_found' => 'Wpis nie znaleziony lub brak dostępu.',
+        'from_afisha' => 'Dodajesz film z Afiszy',
+        'from_afisha_desc' => 'Dane z Afiszy zostały wstępnie wypełnione. Możesz je edytować przed zapisaniem.',
+        'image_from_afisha' => 'Plakat z Afiszy (będzie zapisany automatycznie)',
+        'image_upload_optional' => 'Możesz też przesłać własne zdjęcie, które zastąpi plakat z Afiszy.',
+        'review_placeholder' => 'Napisz swoją recenzję lub notatki o tym filmie/książce...',
     ],
     'profile' => [
         'title' => 'Profil',
