@@ -28,20 +28,35 @@ foreach ($stmtSeen->fetchAll(PDO::FETCH_COLUMN) as $t) {
     $seenTitles[$t] = true;
 }
 
-// 2. Строим базовый запрос по афише
+// 2. Строим базовый запрос по афише (ТОЛЬКО именованные параметры, без смешивания)
 $countSql = "SELECT COUNT(*) FROM upcoming_movies WHERE 1=1";
 $dataSql  = "SELECT * FROM upcoming_movies WHERE 1=1";
-$params   = [];
 
-// Поиск по названию
+$countParams = [':uid' => $myId];
+$dataParams  = [':uid' => $myId];
+
+// Поиск по названию и описанию
 if ($search !== '') {
-    $countSql .= " AND (title ILIKE ? OR original_title ILIKE ?)";
-    $dataSql  .= " AND (title ILIKE ? OR original_title ILIKE ?)";
+    $countSql .= " AND (title ILIKE :q_title OR original_title ILIKE :q_orig OR overview ILIKE :q_overview)";
+    $dataSql  .= " AND (title ILIKE :q_title OR original_title ILIKE :q_orig OR overview ILIKE :q_overview)";
     $like = '%' . $search . '%';
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
-    $params[] = $like;
+
+    $countParams[':q_title']    = $like;
+    $countParams[':q_orig']     = $like;
+    $countParams[':q_overview'] = $like;
+
+    $dataParams[':q_title']    = $like;
+    $dataParams[':q_orig']     = $like;
+    $dataParams[':q_overview'] = $like;
+}
+
+// Если пользователь ввёл год (4 цифры), добавляем фильтр по году выхода
+if (preg_match('/\b(19|20)\d{2}\b/', $search, $m)) {
+    $year = (int)$m[0];
+    $countSql .= " AND EXTRACT(YEAR FROM release_date) = :year";
+    $dataSql  .= " AND EXTRACT(YEAR FROM release_date) = :year";
+    $countParams[':year'] = $year;
+    $dataParams[':year']  = $year;
 }
 
 // Не показываем фильмы, которые уже есть в личной коллекции (по названию)
@@ -58,30 +73,19 @@ $dataSql .= " AND NOT EXISTS (
       AND LOWER(mi.title) = LOWER(upcoming_movies.title)
 )";
 
-// Добавляем параметры пользователя
-$paramsWithUser = $params;
-$paramsWithUser[':uid'] = $myId;
-
 // Считаем общее количество
 $countStmt = $pdo->prepare($countSql);
-$countStmt->execute($paramsWithUser);
+$countStmt->execute($countParams);
 $totalItems = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalItems / $perPage));
 
 // Получаем сами фильмы
 $dataSql .= " ORDER BY release_date ASC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
-$paramsWithUser[':limit']  = $perPage;
-$paramsWithUser[':offset'] = $offset;
+$dataParams[':limit']  = $perPage;
+$dataParams[':offset'] = $offset;
 
 $stmt = $pdo->prepare($dataSql);
-foreach ($paramsWithUser as $k => $v) {
-    if (is_int($k)) {
-        $stmt->bindValue($k + 1, $v); // позиционные параметры
-    } else {
-        $stmt->bindValue($k, $v);
-    }
-}
-$stmt->execute();
+$stmt->execute($dataParams);
 $movies = $stmt->fetchAll();
 
 // 3. Строим профиль интересов (по жанрам) на основе личной коллекции
@@ -187,7 +191,13 @@ require_once 'includes/header.php';
 
         <div class="media-grid">
             <?php foreach ($moviesToShow as $movie): ?>
-                <div class="media-card">
+                <div class="media-card"
+                     onclick="openAfishaModal(this)"
+                     data-title="<?= htmlspecialchars($movie['title']) ?>"
+                     data-original-title="<?= htmlspecialchars($movie['original_title'] ?? '') ?>"
+                     data-overview="<?= htmlspecialchars($movie['overview'] ?? '') ?>"
+                     data-poster="<?= htmlspecialchars($movie['poster_url'] ?? '') ?>"
+                     data-release-date="<?= htmlspecialchars($movie['release_date'] ?? '') ?>">
                     <div class="media-image">
                         <?php if (!empty($movie['poster_url'])): ?>
                             <img src="<?= htmlspecialchars($movie['poster_url']) ?>" alt="Poster">
@@ -221,6 +231,95 @@ require_once 'includes/header.php';
         <?= $paginationHtml ?>
     <?php endif; ?>
 </div>
+
+<!-- Модальное окно для полного описания фильма (афиша) -->
+<div id="afishaModal" class="modal-overlay" onclick="closeAfishaModal(event)">
+    <div class="modal-content">
+        <div class="modal-close" onclick="closeAfishaModalDirect()">&times;</div>
+
+        <div class="modal-image-wrapper" id="afishaImgWrapper" style="display: none;">
+            <img id="afishaPoster" class="modal-image-large" alt="Poster">
+        </div>
+
+        <div class="modal-body">
+            <div class="modal-header-row">
+                <div>
+                    <span class="media-type type-movie" style="margin-bottom: 5px;">🎬</span>
+                    <h2 id="afishaTitle" class="modal-title"></h2>
+                    <p id="afishaOriginal" style="color: #636e72; margin: 5px 0 0 0; font-weight: 500;"></p>
+                </div>
+                <div id="afishaDate" style="font-weight: 800; color: #fdcb6e; background: #2d3436; padding: 5px 10px; border-radius: 10px; font-size: 0.9rem; white-space: nowrap;"></div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #f1f2f6; margin: 15px 0;">
+
+            <h4 style="margin: 0 0 10px 0; color: #b2bec3; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">
+                <?= htmlspecialchars(t('item.review')) ?>
+            </h4>
+            <div id="afishaOverview" style="line-height: 1.6; color: #2d3436; font-size: 1rem;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAfishaModal(card) {
+    const title   = card.getAttribute('data-title') || '';
+    const original = card.getAttribute('data-original-title') || '';
+    const overview = card.getAttribute('data-overview') || '';
+    const poster   = card.getAttribute('data-poster') || '';
+    const date     = card.getAttribute('data-release-date') || '';
+
+    document.getElementById('afishaTitle').textContent = title;
+    const origElem = document.getElementById('afishaOriginal');
+    if (original && original !== title) {
+        origElem.textContent = original;
+        origElem.style.display = 'block';
+    } else {
+        origElem.style.display = 'none';
+    }
+
+    const dateElem = document.getElementById('afishaDate');
+    if (date) {
+        dateElem.textContent = date;
+        dateElem.style.display = 'block';
+    } else {
+        dateElem.style.display = 'none';
+    }
+
+    const overviewElem = document.getElementById('afishaOverview');
+    overviewElem.textContent = '';
+    if (overview) {
+        const lines = overview.split('\n');
+        lines.forEach((line, i) => {
+            if (i > 0) overviewElem.appendChild(document.createElement('br'));
+            overviewElem.appendChild(document.createTextNode(line));
+        });
+    }
+
+    const imgWrapper = document.getElementById('afishaImgWrapper');
+    const img = document.getElementById('afishaPoster');
+    if (poster) {
+        img.src = poster;
+        imgWrapper.style.display = 'flex';
+    } else {
+        imgWrapper.style.display = 'none';
+    }
+
+    document.getElementById('afishaModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAfishaModal(event) {
+    if (event.target.id === 'afishaModal') {
+        closeAfishaModalDirect();
+    }
+}
+
+function closeAfishaModalDirect() {
+    document.getElementById('afishaModal').classList.remove('open');
+    document.body.style.overflow = 'auto';
+}
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
 
