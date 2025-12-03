@@ -52,7 +52,9 @@ if (!empty($movie['release_date'])) {
     $year = (int)date('Y', strtotime($movie['release_date']));
 }
 
-$rating = 0; // пользователь потом поставит свою оценку
+// Рейтинг по умолчанию 5 (средняя оценка), пользователь потом может изменить через редактирование
+// БД требует rating BETWEEN 1 AND 10, поэтому нельзя использовать 0
+$rating = 5;
 
 $insert->execute([
     $myId,
