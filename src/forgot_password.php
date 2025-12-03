@@ -85,12 +85,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = t('email.reset_password_error') . ': ' . htmlspecialchars($result['error'] ?? 'Unknown error');
                 
                 // В режиме разработки можно показать ссылку
-                if (getenv('APP_ENV') === 'development' || strpos($host, 'localhost') !== false) {
+                if (getenv('APP_ENV') === 'development' || strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false) {
                     $message = '
                     <div style="background: #ffeaa7; padding: 15px; border-radius: 5px; border-left: 5px solid #fdcb6e;">
-                        <strong>⚠️ Tryb deweloperski:</strong><br>
-                        Email nie został wysłany, ale oto link do resetu:<br>
-                        <a href="' . htmlspecialchars($resetLink) . '" style="word-break: break-all;">' . htmlspecialchars($resetLink) . '</a>
+                        <strong>⚠️ Tryb deweloperski (localhost):</strong><br>
+                        Email nie został wysłany (wymaga konfiguracji SendGrid/SMTP), ale oto link do resetu hasła:<br><br>
+                        <a href="' . htmlspecialchars($resetLink) . '" style="word-break: break-all; color: #6c5ce7; font-weight: bold;">' . htmlspecialchars($resetLink) . '</a><br><br>
+                        <small style="color: #636e72;">Na produkcji (Render) po skonfigurowaniu SendGrid API email będzie wysyłany automatycznie.</small>
+                    </div>';
+                } else {
+                    // На продакшене показываем общее сообщение даже если отправка не удалась
+                    $message = '<div style="background: #55efc4; color: #00b894; padding: 15px; border-radius: 5px; text-align: center;">
+                        <strong>✅ ' . htmlspecialchars(t('email.reset_password_sent')) . '</strong><br>
+                        ' . htmlspecialchars(t('email.reset_password_check')) . '<br><br>
+                        <small style="color: #00a085;">Jeśli nie otrzymałeś emaila, sprawdź folder spam lub skontaktuj się z administratorem.</small>
                     </div>';
                 }
             }
