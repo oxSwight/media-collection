@@ -31,6 +31,33 @@
     --dark: #ecf0f1;
 }
 
+.dark-theme .navbar {
+    background-color: var(--white);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .auth-form,
+.dark-theme .media-card,
+.dark-theme .search-bar-container,
+.dark-theme .profile-header,
+.dark-theme .user-card,
+.dark-theme .empty-state,
+.dark-theme .modal-content {
+    background-color: var(--white);
+    color: var(--text);
+}
+
+.dark-theme .lang-select {
+    background: var(--white);
+    border-color: #636e72;
+    color: var(--text);
+}
+
+.dark-theme .lang-select:hover {
+    background: #3d4146;
+    border-color: var(--primary);
+}
+
 
 /* --- GLOBAL --- */
 
@@ -44,7 +71,11 @@ body {
     flex-direction: column;
     min-height: 100vh;
     overflow-x: hidden;
-    /* Скрываем горизонтальную прокрутку */
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme body {
+    background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%);
 }
 
 .container {
@@ -109,6 +140,31 @@ body {
     display: flex;
     align-items: center;
     margin: 0;
+}
+
+/* Кнопка переключения темы */
+.theme-toggle-btn {
+    background: var(--primary);
+    color: white !important;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    line-height: 1;
+}
+
+.theme-toggle-btn:hover {
+    background: var(--secondary);
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .lang-switcher {

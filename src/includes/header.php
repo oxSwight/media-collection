@@ -32,6 +32,16 @@ if ($myId) {
                 }
             } catch (e) {}
         })();
+        
+        // Функция переключения темы (должна быть доступна сразу)
+        function toggleTheme() {
+            const root = document.documentElement;
+            const isDark = root.classList.toggle('dark-theme');
+            try {
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            } catch (e) {}
+        }
+        
         window.csrfToken = <?= json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     </script>
 </head>
@@ -44,7 +54,7 @@ if ($myId) {
             <ul class="nav-links">
                 <?php if ($myId): ?>
                     <li>
-                        <button type="button" class="btn-submit" style="width:auto; padding:6px 12px; font-size:0.8rem;" onclick="toggleTheme()">
+                        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему">
                             🌓
                         </button>
                     </li>
@@ -133,7 +143,7 @@ if ($myId) {
                         </form>
                     </li>
                     <li>
-                        <button type="button" class="btn-submit" style="width:auto; padding:6px 12px; font-size:0.8rem;" onclick="toggleTheme()">
+                        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему">
                             🌓
                         </button>
                     </li>
