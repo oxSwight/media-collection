@@ -79,8 +79,8 @@ $countStmt->execute($countParams);
 $totalItems = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalItems / $perPage));
 
-// Получаем сами фильмы
-$dataSql .= " ORDER BY release_date ASC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
+// Получаем сами фильмы — сперва более новые релизы
+$dataSql .= " ORDER BY release_date DESC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
 $dataParams[':limit']  = $perPage;
 $dataParams[':offset'] = $offset;
 
@@ -137,7 +137,6 @@ require_once 'includes/header.php';
 
 <div class="dashboard">
     <div class="header-actions">
-        <h2><?= htmlspecialchars(t('afisha.title')) ?></h2>
         <?php if (!empty($_SESSION['is_admin'])): ?>
             <a href="admin_afisha_refresh.php" class="btn-register" style="text-decoration: none;">
                 <?= htmlspecialchars(t('afisha.refresh_btn')) ?>
@@ -149,7 +148,7 @@ require_once 'includes/header.php';
         <?= htmlspecialchars(t('afisha.description')) ?>
     </p>
 
-    <form action="afisha.php" method="GET" class="search-form" style="margin-bottom: 20px; gap: 10px;">
+    <form action="afisha.php" method="GET" class="search-form afisha-search-form" style="margin-bottom: 20px; gap: 10px;">
         <input
             type="text"
             name="q"
@@ -158,15 +157,15 @@ require_once 'includes/header.php';
             class="search-input"
             style="flex:1; min-width: 180px;"
         >
-        <select name="mode" class="lang-select" style="width:auto; min-width: 160px;">
-            <option value="recommended" <?= $mode === 'recommended' ? 'selected' : '' ?>>
+        <div class="afisha-mode-toggle">
+            <button type="submit" name="mode" value="recommended" class="mode-btn <?= $mode === 'recommended' ? 'active' : '' ?>">
                 <?= htmlspecialchars(t('afisha.mode_recommended')) ?>
-            </option>
-            <option value="all" <?= $mode === 'all' ? 'selected' : '' ?>>
+            </button>
+            <button type="submit" name="mode" value="all" class="mode-btn <?= $mode === 'all' ? 'active' : '' ?>">
                 <?= htmlspecialchars(t('afisha.mode_all')) ?>
-            </option>
-        </select>
-        <button type="submit" class="btn-submit" style="width:auto;">
+            </button>
+        </div>
+        <button type="submit" class="btn-submit afisha-submit-btn" style="width:auto;">
             <?= htmlspecialchars(t('afisha.filter_btn')) ?>
         </button>
     </form>

@@ -148,17 +148,17 @@ return [
         'copyright' => 'MediaLib. Your private library of movies and books.',
     ],
     'afisha' => [
-        'title' => 'Upcoming movies (Afisha)',
-        'description' => 'We show upcoming movies that are not yet in your collection. Recommendations are based on your tastes (genres) where possible.',
+        'title' => 'Movie Afisha',
+        'description' => 'Browse movies that are not yet in your collection. Recommendations are based on your tastes (genres) where possible.',
         'search_placeholder' => 'Search by title...',
         'mode_recommended' => 'Recommended for you',
         'mode_all' => 'All movies',
-        'filter_btn' => 'Apply',
+        'filter_btn' => 'Search',
         'no_recommended' => 'No recommended movies found yet. Try adding genres to your watched movies or switch to all movies.',
-        'no_movies' => 'No upcoming movies found. Try again later.',
-        'show_all' => 'Show all upcoming movies',
+        'no_movies' => 'No movies match your filters. Try changing the search.',
+        'show_all' => 'Show all movies',
         'found' => 'Found:',
-        'refresh_btn' => '⟳ Refresh from TMDb',
+        'refresh_btn' => '⟳ Refresh movies',
     ],
 ];
 

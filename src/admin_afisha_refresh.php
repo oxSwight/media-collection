@@ -34,7 +34,7 @@ $apiLang = $langMap[$currentLang] ?? 'en-US';
 
 // Для региональных премьер можно указать region, но оставим по умолчанию (świat)
 $page = 1;
-$maxPages = 3; // ограничимся несколькими страницами, чтобы не злоупотреблять API
+$maxPages = 10; // до ~200 filmów (10 stron), wciąż bez przesady dla API
 $imported = 0;
 
 // Простая upsert-подготовка
@@ -113,12 +113,6 @@ for ($page = 1; $page <= $maxPages; $page++) {
     }
 }
 
-require_once 'includes/header.php';
-echo "<div class='container' style='padding:40px; text-align:center;'>";
-echo "<h2>Afisza odświeżona</h2>";
-echo "<p>Zaimportowano / zaktualizowano filmów: <strong>" . (int)$imported . "</strong>.</p>";
-echo "<p><a href='afisha.php' class='btn-submit' style='width:auto; text-decoration:none; margin-top:20px;'>Przejdź do afiszy</a></p>";
-echo "</div>";
-require_once 'includes/footer.php';
-
-
+// Po zakończeniu – ciche przekierowanie z powrotem na afiszę
+header('Location: afisha.php');
+exit;

@@ -148,17 +148,17 @@ return [
         'copyright' => 'MediaLib. Twoja prywatna biblioteka filmów i książek.',
     ],
     'afisha' => [
-        'title' => 'Nadchodzące filmy (Afisza)',
-        'description' => 'Pokazujemy nadchodzące filmy, których nie ma jeszcze w Twojej kolekcji. Rekomendacje opierają się na Twoich gustach (gatunki), jeśli to możliwe.',
+        'title' => 'Afisza filmowa',
+        'description' => 'Przeglądaj filmy, których jeszcze nie masz w swojej kolekcji. Rekomendacje opierają się na Twoich gustach (gatunki), jeśli to możliwe.',
         'search_placeholder' => 'Szukaj po tytule...',
         'mode_recommended' => 'Polecane dla Ciebie',
         'mode_all' => 'Wszystkie filmy',
-        'filter_btn' => 'Zastosuj',
+        'filter_btn' => 'Szukaj',
         'no_recommended' => 'Brak polecanych filmów. Spróbuj dodać gatunki do obejrzanych filmów lub przełącz na wszystkie.',
-        'no_movies' => 'Brak nadchodzących filmów. Spróbuj później.',
-        'show_all' => 'Pokaż wszystkie nadchodzące filmy',
+        'no_movies' => 'Brak filmów pasujących do Twoich filtrów. Spróbuj zmienić wyszukiwanie.',
+        'show_all' => 'Pokaż wszystkie filmy',
         'found' => 'Znaleziono:',
-        'refresh_btn' => '⟳ Odśwież z TMDb',
+        'refresh_btn' => '⟳ Odśwież filmy',
     ],
 ];
 
