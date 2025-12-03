@@ -169,7 +169,7 @@ return [
         'show_all' => 'Show all movies',
         'found' => 'Found:',
         'refresh_btn' => '⟳ Refresh movies',
-        'add_to_collection' => '➕ Add to my collection',
+        'add_to_collection' => 'Add to my collection',
     ],
     'activity' => [
         'title' => 'Activity feed',

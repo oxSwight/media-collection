@@ -4,9 +4,10 @@
 
 require_once 'includes/init.php';
 
-if (!isset($_SESSION['user_id']) || empty($_SESSION['is_admin'])) {
-    http_response_code(403);
-    exit('Brak uprawnień.');
+// Разрешаем обновление всем авторизованным пользователям
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
 
 $apiKey = getenv('TMDB_API_KEY');
@@ -37,10 +38,10 @@ $page = 1;
 $maxPages = 10; // до ~200 filmów (10 stron), wciąż bez przesady dla API
 $imported = 0;
 
-// Простая upsert-подготовка
+// Простая upsert-подготовка (включая vote_average)
 $stmt = $pdo->prepare("
-    INSERT INTO upcoming_movies (external_id, title, original_title, overview, poster_url, release_date, genres, popularity, updated_at)
-    VALUES (:external_id, :title, :original_title, :overview, :poster_url, :release_date, :genres, :popularity, NOW())
+    INSERT INTO upcoming_movies (external_id, title, original_title, overview, poster_url, release_date, genres, popularity, vote_average, updated_at)
+    VALUES (:external_id, :title, :original_title, :overview, :poster_url, :release_date, :genres, :popularity, :vote_average, NOW())
     ON CONFLICT (external_id) DO UPDATE SET
         title = EXCLUDED.title,
         original_title = EXCLUDED.original_title,
@@ -49,6 +50,7 @@ $stmt = $pdo->prepare("
         release_date = EXCLUDED.release_date,
         genres = EXCLUDED.genres,
         popularity = EXCLUDED.popularity,
+        vote_average = EXCLUDED.vote_average,
         updated_at = NOW()
 ");
 
@@ -101,6 +103,7 @@ for ($page = 1; $page <= $maxPages; $page++) {
             ':release_date'   => !empty($movie['release_date']) ? $movie['release_date'] : null,
             ':genres'         => $genres,
             ':popularity'     => $movie['popularity'] ?? null,
+            ':vote_average'   => !empty($movie['vote_average']) ? (float)$movie['vote_average'] : null,
         ];
 
         $stmt->execute($params);

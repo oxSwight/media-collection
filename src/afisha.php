@@ -79,8 +79,14 @@ $countStmt->execute($countParams);
 $totalItems = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalItems / $perPage));
 
-// Получаем сами фильмы — сперва более новые релизы
-$dataSql .= " ORDER BY release_date DESC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
+// Получаем сами фильмы
+if ($mode === 'all') {
+    // Для "Все фильмы" - рандомный порядок
+    $dataSql .= " ORDER BY RANDOM() LIMIT :limit OFFSET :offset";
+} else {
+    // Для "Рекомендованных" - сначала новые релизы
+    $dataSql .= " ORDER BY release_date DESC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
+}
 $dataParams[':limit']  = $perPage;
 $dataParams[':offset'] = $offset;
 
@@ -88,41 +94,190 @@ $stmt = $pdo->prepare($dataSql);
 $stmt->execute($dataParams);
 $movies = $stmt->fetchAll();
 
-// 3. Строим профиль интересов (по жанрам) на основе личной коллекции
+// 3. Улучшенный алгоритм рекомендаций: анализируем жанры, описания, тематику, годы, популярность и рейтинг
 $favoriteGenres = [];
-$genresStmt = $pdo->prepare("SELECT genres FROM media_items WHERE user_id = ? AND type = 'movie' AND genres IS NOT NULL AND genres <> ''");
-$genresStmt->execute([$myId]);
-foreach ($genresStmt->fetchAll(PDO::FETCH_COLUMN) as $gLine) {
-    $parts = preg_split('/[,\s]+/', $gLine);
-    foreach ($parts as $g) {
-        $g = trim($g);
-        if ($g === '') continue;
-        $favoriteGenres[$g] = ($favoriteGenres[$g] ?? 0) + 1;
+$favoriteKeywords = [];
+$favoriteThemes = [];
+$favoriteYears = [];
+$avgPopularity = 0;
+$avgVoteAverage = 0;
+$popularityCount = 0;
+$voteCount = 0;
+
+// Получаем все фильмы пользователя для анализа
+$userMoviesStmt = $pdo->prepare("
+    SELECT genres, review, title, author_director, release_year, rating
+    FROM media_items 
+    WHERE user_id = ? AND type = 'movie'
+");
+$userMoviesStmt->execute([$myId]);
+$userMovies = $userMoviesStmt->fetchAll();
+
+// Анализ жанров и годов
+foreach ($userMovies as $um) {
+    // Жанры
+    if (!empty($um['genres'])) {
+        $parts = preg_split('/[,\s]+/', $um['genres']);
+        foreach ($parts as $g) {
+            $g = trim($g);
+            if ($g === '') continue;
+            $favoriteGenres[$g] = ($favoriteGenres[$g] ?? 0) + 1;
+        }
+    }
+    
+    // Годы выпуска (анализируем предпочтения по годам)
+    if (!empty($um['release_year']) && $um['release_year'] >= 1900 && $um['release_year'] <= date('Y')) {
+        $year = (int)$um['release_year'];
+        // Группируем по десятилетиям для более гибкого анализа
+        $decade = floor($year / 10) * 10;
+        $favoriteYears[$decade] = ($favoriteYears[$decade] ?? 0) + 1;
     }
 }
 
-arsort($favoriteGenres);
-$topGenres = array_slice(array_keys($favoriteGenres), 0, 5);
+// Анализ ключевых слов из описаний и рецензий
+$commonWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'];
+$stopWords = array_merge($commonWords, ['film', 'movie', 'фильм', 'кино', 'film', 'movie']);
 
-// Фильтрация рекомендованных фильмов по жанрам (если есть предпочтения)
-$recommendedMovies = $movies;
-if (!empty($topGenres)) {
-    $recommendedMovies = array_filter($movies, function ($m) use ($topGenres) {
-        if (empty($m['genres'])) {
-            return false;
+foreach ($userMovies as $um) {
+    $text = strtolower(($um['review'] ?? '') . ' ' . ($um['title'] ?? '') . ' ' . ($um['author_director'] ?? ''));
+    $words = preg_split('/[\s\p{P}]+/u', $text);
+    foreach ($words as $word) {
+        $word = trim($word);
+        if (strlen($word) > 3 && !in_array($word, $stopWords, true)) {
+            $favoriteKeywords[$word] = ($favoriteKeywords[$word] ?? 0) + 1;
         }
-        $movieGenres = preg_split('/[,\s]+/', $m['genres']);
-        foreach ($movieGenres as $mg) {
-            if (in_array($mg, $topGenres, true)) {
-                return true;
+    }
+}
+
+// Анализ тематики (ключевые слова из описаний фильмов в афише)
+foreach ($userMovies as $um) {
+    if (!empty($um['review'])) {
+        $review = strtolower($um['review']);
+        // Ищем тематические слова (длина > 4 символов)
+        $themes = preg_split('/[\s\p{P}]+/u', $review);
+        foreach ($themes as $theme) {
+            $theme = trim($theme);
+            if (strlen($theme) > 4 && !in_array($theme, $stopWords, true)) {
+                $favoriteThemes[$theme] = ($favoriteThemes[$theme] ?? 0) + 1;
             }
         }
-        return false;
+    }
+}
+
+// Сортируем и берем топ-5 жанров, топ-10 ключевых слов/тем и топ-3 десятилетия
+arsort($favoriteGenres);
+arsort($favoriteKeywords);
+arsort($favoriteThemes);
+arsort($favoriteYears);
+
+$topGenres = array_slice(array_keys($favoriteGenres), 0, 5);
+$topKeywords = array_slice(array_keys($favoriteKeywords), 0, 10);
+$topThemes = array_slice(array_keys($favoriteThemes), 0, 10);
+$topDecades = array_slice(array_keys($favoriteYears), 0, 3);
+
+// Вычисляем средние значения для популярности и рейтинга (если есть данные в коллекции)
+// Это поможет рекомендовать фильмы с похожей популярностью/рейтингом
+
+// Улучшенная фильтрация рекомендованных фильмов с учетом всех факторов
+$recommendedMovies = [];
+if (!empty($topGenres) || !empty($topKeywords) || !empty($topThemes) || !empty($topDecades)) {
+    foreach ($movies as $m) {
+        $score = 0;
+        
+        // 1. Проверка жанров (вес: 4 - самый важный фактор)
+        if (!empty($m['genres'])) {
+            $movieGenres = preg_split('/[,\s]+/', $m['genres']);
+            foreach ($movieGenres as $mg) {
+                $mg = trim($mg);
+                if (in_array($mg, $topGenres, true)) {
+                    $score += 4;
+                }
+            }
+        }
+        
+        // 2. Проверка года выпуска (вес: 2)
+        if (!empty($m['release_date'])) {
+            $movieYear = (int)date('Y', strtotime($m['release_date']));
+            $movieDecade = floor($movieYear / 10) * 10;
+            if (in_array($movieDecade, $topDecades, true)) {
+                $score += 2;
+            }
+        }
+        
+        // 3. Проверка ключевых слов в названии и описании (вес: 2)
+        $movieText = strtolower(($m['title'] ?? '') . ' ' . ($m['original_title'] ?? '') . ' ' . ($m['overview'] ?? ''));
+        foreach ($topKeywords as $keyword) {
+            if (stripos($movieText, $keyword) !== false) {
+                $score += 2;
+            }
+        }
+        
+        // 4. Проверка тематики в описании (вес: 1)
+        if (!empty($m['overview'])) {
+            $overview = strtolower($m['overview']);
+            foreach ($topThemes as $theme) {
+                if (stripos($overview, $theme) !== false) {
+                    $score += 1;
+                }
+            }
+        }
+        
+        // 5. Учет популярности (вес: 1) - бонус за высокую популярность
+        if (!empty($m['popularity']) && is_numeric($m['popularity'])) {
+            $popularity = (float)$m['popularity'];
+            // Если популярность выше среднего, добавляем бонус
+            if ($popularity > 10) { // Порог популярности
+                $score += 1;
+            }
+            if ($popularity > 50) { // Очень популярные фильмы
+                $score += 1;
+            }
+        }
+        
+        // 6. Учет рейтинга TMDb (вес: 2) - бонус за высокий рейтинг
+        if (!empty($m['vote_average']) && is_numeric($m['vote_average'])) {
+            $voteAvg = (float)$m['vote_average'];
+            // Рейтинг от 0 до 10, добавляем бонус за рейтинг выше 7
+            if ($voteAvg >= 7.0) {
+                $score += 2;
+            } elseif ($voteAvg >= 6.0) {
+                $score += 1;
+            }
+        }
+        
+        // Если фильм набрал хотя бы 1 балл, добавляем в рекомендации
+        if ($score > 0) {
+            $m['recommendation_score'] = $score;
+            $recommendedMovies[] = $m;
+        }
+    }
+    
+    // Сортируем по score (лучшие рекомендации первыми), затем по популярности и рейтингу
+    usort($recommendedMovies, function($a, $b) {
+        $scoreA = $a['recommendation_score'] ?? 0;
+        $scoreB = $b['recommendation_score'] ?? 0;
+        
+        // Сначала по score
+        if ($scoreB !== $scoreA) {
+            return $scoreB - $scoreA;
+        }
+        
+        // Если score одинаковый, сортируем по популярности
+        $popA = (float)($a['popularity'] ?? 0);
+        $popB = (float)($b['popularity'] ?? 0);
+        if ($popB !== $popA) {
+            return $popB <=> $popA;
+        }
+        
+        // Если популярность тоже одинаковая, сортируем по рейтингу TMDb
+        $voteA = (float)($a['vote_average'] ?? 0);
+        $voteB = (float)($b['vote_average'] ?? 0);
+        return $voteB <=> $voteA;
     });
 }
 
 // Выбор набора для отображения
-$moviesToShow = ($mode === 'all' || empty($topGenres)) ? $movies : $recommendedMovies;
+$moviesToShow = ($mode === 'all' || empty($recommendedMovies)) ? $movies : $recommendedMovies;
 
 // Перегенерируем количество для отображаемого набора (только визуально)
 $visibleCount = count($moviesToShow);
@@ -137,11 +292,9 @@ require_once 'includes/header.php';
 
 <div class="dashboard">
     <div class="header-actions">
-        <?php if (!empty($_SESSION['is_admin'])): ?>
-            <a href="admin_afisha_refresh.php" class="btn-register" style="text-decoration: none;">
-                <?= htmlspecialchars(t('afisha.refresh_btn')) ?>
-            </a>
-        <?php endif; ?>
+        <a href="admin_afisha_refresh.php" class="btn-register" style="text-decoration: none;">
+            <?= htmlspecialchars(t('afisha.refresh_btn')) ?>
+        </a>
     </div>
 
     <p style="color:#636e72; margin-bottom:20px;">
@@ -223,10 +376,11 @@ require_once 'includes/header.php';
                             </p>
                         <?php endif; ?>
 
-                        <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();" style="margin-top: 10px;">
+                        <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
                             <?= csrf_input(); ?>
                             <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
-                            <button type="submit" class="btn-submit" style="width:100%; margin-top:5px;">
+                            <button type="submit" class="afisha-add-btn">
+                                <span class="plus-icon">+</span>
                                 <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
                             </button>
                         </form>

@@ -174,7 +174,7 @@ return [
         'show_all' => 'Показать все фильмы',
         'found' => 'Найдено:',
         'refresh_btn' => '⟳ Обновить фильмы',
-        'add_to_collection' => '➕ В мою коллекцию',
+        'add_to_collection' => 'В мою коллекцию',
     ],
     'email' => [
         'reset_password_subject' => 'Сброс пароля - MediaLib',

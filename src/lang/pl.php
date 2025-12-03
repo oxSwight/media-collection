@@ -169,7 +169,7 @@ return [
         'show_all' => 'Pokaż wszystkie filmy',
         'found' => 'Znaleziono:',
         'refresh_btn' => '⟳ Odśwież filmy',
-        'add_to_collection' => '➕ Do mojej kolekcji',
+        'add_to_collection' => 'Do mojej kolekcji',
     ],
     'activity' => [
         'title' => 'Aktywność znajomych',
