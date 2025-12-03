@@ -34,7 +34,13 @@ function send_email(string $to, string $subject, string $body, string $textBody 
  */
 function send_email_sendgrid(string $to, string $subject, string $body, string $textBody, string $apiKey): array
 {
-    $fromEmail = getenv('SENDGRID_FROM_EMAIL') ?: 'noreply@medialib.app';
+    // Для SendGrid можно использовать любой email, но лучше верифицированный
+    // Если не задан, используем email получателя как fallback (но это не идеально)
+    $fromEmail = getenv('SENDGRID_FROM_EMAIL');
+    if (empty($fromEmail)) {
+        // Если не задан, можно использовать email получателя (но лучше задать в переменных окружения)
+        $fromEmail = 'noreply@sendgrid.net'; // SendGrid позволяет использовать этот домен без верификации (но письма могут попадать в спам)
+    }
     $fromName = getenv('SENDGRID_FROM_NAME') ?: 'MediaLib';
     
     // SendGrid требует: сначала text/plain, потом text/html (и text/plain должен быть всегда)

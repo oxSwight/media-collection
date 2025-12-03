@@ -9,20 +9,43 @@ MediaLib поддерживает несколько способов отпра
 ### Шаги:
 
 1. Зарегистрируйтесь на [SendGrid](https://sendgrid.com/) (бесплатный аккаунт).
-2. Создайте API Key:
-   - Settings → API Keys → Create API Key
+
+2. **ВАЖНО: Верифицируйте отправителя (Sender Identity):**
+   - Зайдите в SendGrid Dashboard
+   - Settings → **Sender Authentication**
+   - Выберите **"Verify a Single Sender"** (проще всего для начала)
+   - Заполните форму:
+     - **From Email Address:** ваш реальный email (например, `twoj-email@gmail.com`)
+     - **From Name:** MediaLib (или любое имя)
+     - Остальные поля заполните по желанию
+   - Нажмите **"Create"**
+   - **Проверьте почту** - SendGrid отправит письмо с подтверждением
+   - **Кликните на ссылку в письме** для верификации
+   - После верификации статус изменится на "Verified" ✅
+
+3. Создайте API Key:
+   - Settings → **API Keys** → **Create API Key**
    - Дайте имя (например, "MediaLib")
-   - Выберите "Full Access" или "Restricted Access" с правами на отправку писем
-   - Скопируйте ключ (он показывается только один раз!)
-3. На Render в настройках вашего Web Service:
-   - Settings → Environment
+   - Выберите **"Full Access"** или **"Restricted Access"** с правами на отправку писем
+   - **Скопируйте ключ** (он показывается только один раз!)
+
+4. На Render в настройках вашего Web Service:
+   - Settings → **Environment**
    - Добавьте переменные:
      ```
-     SENDGRID_API_KEY = ваш_ключ_из_sendgrid
-     SENDGRID_FROM_EMAIL = noreply@ваш-домен.com (или любой email)
+     SENDGRID_API_KEY = ваш_ключ_из_шага_3
+     SENDGRID_FROM_EMAIL = тот_же_email_что_верифицировали_в_шаге_2
      SENDGRID_FROM_NAME = MediaLib
      ```
-4. Сохраните и перезапустите сервис (Redeploy).
+   - **Важно:** `SENDGRID_FROM_EMAIL` должен совпадать с верифицированным email из шага 2!
+
+5. Сохраните и перезапустите сервис (Redeploy).
+
+### Если видите ошибку "verified Sender Identity":
+
+Это значит, что email в `SENDGRID_FROM_EMAIL` не верифицирован в SendGrid. Решение:
+- Вернитесь к шагу 2 и верифицируйте email
+- Убедитесь, что `SENDGRID_FROM_EMAIL` в Render точно совпадает с верифицированным email
 
 ---
 

@@ -81,10 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ' . htmlspecialchars(t('email.reset_password_check')) . '
                 </div>';
             } else {
-                // Если отправка не удалась, показываем ссылку напрямую (для разработки)
-                $error = t('email.reset_password_error') . ': ' . htmlspecialchars($result['error'] ?? 'Unknown error');
+                // Если отправка не удалась
+                $errorMsg = $result['error'] ?? 'Unknown error';
                 
-                // В режиме разработки можно показать ссылку
+                // Проверяем, это ошибка верификации SendGrid?
+                $isSendGridVerificationError = (strpos($errorMsg, 'verified Sender Identity') !== false || strpos($errorMsg, 'HTTP 403') !== false);
+                
+                // В режиме разработки показываем ссылку напрямую
                 if (getenv('APP_ENV') === 'development' || strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false) {
                     $message = '
                     <div style="background: #ffeaa7; padding: 15px; border-radius: 5px; border-left: 5px solid #fdcb6e;">
@@ -93,13 +96,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="' . htmlspecialchars($resetLink) . '" style="word-break: break-all; color: #6c5ce7; font-weight: bold;">' . htmlspecialchars($resetLink) . '</a><br><br>
                         <small style="color: #636e72;">Na produkcji (Render) po skonfigurowaniu SendGrid API email będzie wysyłany automatycznie.</small>
                     </div>';
-                } else {
-                    // На продакшене показываем общее сообщение даже если отправка не удалась
-                    $message = '<div style="background: #55efc4; color: #00b894; padding: 15px; border-radius: 5px; text-align: center;">
-                        <strong>✅ ' . htmlspecialchars(t('email.reset_password_sent')) . '</strong><br>
-                        ' . htmlspecialchars(t('email.reset_password_check')) . '<br><br>
-                        <small style="color: #00a085;">Jeśli nie otrzymałeś emaila, sprawdź folder spam lub skontaktuj się z administratorem.</small>
+                } elseif ($isSendGridVerificationError) {
+                    // Специальное сообщение для ошибки верификации SendGrid
+                    $error = '<div style="background: #fab1a0; color: #d63031; padding: 15px; border-radius: 5px; border-left: 5px solid #e17055;">
+                        <strong>⚠️ SendGrid wymaga weryfikacji nadawcy:</strong><br>
+                        Adres email nadawcy (' . htmlspecialchars(getenv('SENDGRID_FROM_EMAIL') ?: 'noreply@medialib.app') . ') nie jest zweryfikowany w SendGrid.<br><br>
+                        <strong>Jak naprawić:</strong><br>
+                        1. Zaloguj się do SendGrid<br>
+                        2. Przejdź do Settings → Sender Authentication<br>
+                        3. Kliknij "Verify a Single Sender" lub użyj domeny<br>
+                        4. Podaj email, który chcesz używać jako nadawca<br>
+                        5. Potwierdź email (otrzymasz wiadomość weryfikacyjną)<br><br>
+                        <small>Po weryfikacji email będzie działał automatycznie.</small>
                     </div>';
+                } else {
+                    // Другие ошибки - показываем общее сообщение (безопасность)
+                    $error = t('email.reset_password_error') . ': ' . htmlspecialchars($errorMsg);
                 }
             }
         } else {
