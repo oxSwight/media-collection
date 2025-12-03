@@ -171,5 +171,17 @@ return [
         'empty' => 'No activity yet for you and your friends. Add some movies to get started.',
         'add_item' => 'added to collection',
     ],
+    'email' => [
+        'reset_password_subject' => 'Password Reset - MediaLib',
+        'reset_password_title' => 'Password Reset',
+        'reset_password_text' => 'We received a request to reset the password for your MediaLib account. Click the button below to set a new password:',
+        'reset_password_button' => 'Reset Password',
+        'reset_password_link_text' => 'If the button does not work, copy and paste this link into your browser',
+        'reset_password_expires' => 'This link is valid for 1 hour.',
+        'reset_password_footer' => 'If you did not request a password reset, please ignore this message. Your password will remain unchanged.',
+        'reset_password_sent' => 'Email sent!',
+        'reset_password_check' => 'Check your inbox and click the link in the message to reset your password.',
+        'reset_password_error' => 'Email sending error',
+    ],
 ];
 

@@ -171,5 +171,17 @@ return [
         'empty' => 'Brak aktywności Twojej i Twoich znajomych. Dodaj filmy, aby zacząć.',
         'add_item' => 'dodał do kolekcji',
     ],
+    'email' => [
+        'reset_password_subject' => 'Reset hasła - MediaLib',
+        'reset_password_title' => 'Reset hasła',
+        'reset_password_text' => 'Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta MediaLib. Kliknij poniższy przycisk, aby ustawić nowe hasło:',
+        'reset_password_button' => 'Zresetuj hasło',
+        'reset_password_link_text' => 'Jeśli przycisk nie działa, skopiuj i wklej ten link do przeglądarki',
+        'reset_password_expires' => 'Link jest ważny przez 1 godzinę.',
+        'reset_password_footer' => 'Jeśli nie prosiłeś o reset hasła, zignoruj tę wiadomość. Twoje hasło pozostanie bez zmian.',
+        'reset_password_sent' => 'Email został wysłany!',
+        'reset_password_check' => 'Sprawdź swoją skrzynkę pocztową i kliknij link w wiadomości, aby zresetować hasło.',
+        'reset_password_error' => 'Błąd wysyłania emaila',
+    ],
 ];
 
