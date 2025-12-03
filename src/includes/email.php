@@ -37,6 +37,27 @@ function send_email_sendgrid(string $to, string $subject, string $body, string $
     $fromEmail = getenv('SENDGRID_FROM_EMAIL') ?: 'noreply@medialib.app';
     $fromName = getenv('SENDGRID_FROM_NAME') ?: 'MediaLib';
     
+    // SendGrid требует: сначала text/plain, потом text/html (и text/plain должен быть всегда)
+    // Если textBody пустой, создаем простую текстовую версию из HTML
+    if (empty(trim($textBody))) {
+        $textBody = strip_tags($body);
+        $textBody = html_entity_decode($textBody, ENT_QUOTES, 'UTF-8');
+        $textBody = preg_replace('/\s+/', ' ', $textBody); // Убираем лишние пробелы
+        $textBody = trim($textBody);
+    }
+    
+    // ВАЖНО: порядок должен быть строго text/plain ПЕРВЫМ, text/html ВТОРЫМ
+    $content = [
+        [
+            'type' => 'text/plain',
+            'value' => $textBody
+        ],
+        [
+            'type' => 'text/html',
+            'value' => $body
+        ]
+    ];
+    
     $data = [
         'personalizations' => [
             [
@@ -48,20 +69,8 @@ function send_email_sendgrid(string $to, string $subject, string $body, string $
             'email' => $fromEmail,
             'name' => $fromName
         ],
-        'content' => [
-            [
-                'type' => 'text/html',
-                'value' => $body
-            ]
-        ]
+        'content' => $content
     ];
-    
-    if ($textBody) {
-        $data['content'][] = [
-            'type' => 'text/plain',
-            'value' => $textBody
-        ];
-    }
     
     $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
     curl_setopt_array($ch, [
