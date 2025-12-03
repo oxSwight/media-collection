@@ -23,6 +23,15 @@ if ($myId) {
     <title><?= htmlspecialchars(t('site.title')) ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
     <script>
+        // Тема (светлая/темная)
+        (function() {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.classList.add('dark-theme');
+                }
+            } catch (e) {}
+        })();
         window.csrfToken = <?= json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     </script>
 </head>
@@ -34,6 +43,13 @@ if ($myId) {
             </a>
             <ul class="nav-links">
                 <?php if ($myId): ?>
+                    <li>
+                        <button type="button" class="btn-submit" style="width:auto; padding:6px 12px; font-size:0.8rem;" onclick="toggleTheme()">
+                            🌓
+                        </button>
+                    </li>
+                    <!-- Лента активности -->
+                    <li><a href="activity.php"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
                     <!-- Афиша (видят все залогиненные) -->
                     <li><a href="afisha.php"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
 
@@ -55,11 +71,21 @@ if ($myId) {
                     
                     <!-- Переключатель языка -->
                     <li class="lang-switcher">
-                        <select onchange="(function(){const url=new URL(window.location);url.searchParams.set('lang',this.value);window.location.replace(url.toString());}).call(this)" class="lang-select">
-                            <option value="pl" <?= $currentLang === 'pl' ? 'selected' : '' ?>>🇵🇱 PL</option>
-                            <option value="en" <?= $currentLang === 'en' ? 'selected' : '' ?>>🇬🇧 EN</option>
-                            <option value="ru" <?= $currentLang === 'ru' ? 'selected' : '' ?>>🇷🇺 RU</option>
-                        </select>
+                        <form method="GET" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" style="margin:0; display:flex; align-items:center; gap:5px;">
+                            <?php
+                            // Сохраняем все текущие GET-параметры, кроме lang
+                            foreach ($_GET as $key => $value) {
+                                if ($key === 'lang') continue;
+                                if (is_array($value)) continue;
+                                echo '<input type="hidden" name="' . htmlspecialchars($key) . '" value="' . htmlspecialchars($value) . '">';
+                            }
+                            ?>
+                            <select name="lang" class="lang-select" onchange="this.form.submit()">
+                                <option value="pl" <?= $currentLang === 'pl' ? 'selected' : '' ?>>🇵🇱 PL</option>
+                                <option value="en" <?= $currentLang === 'en' ? 'selected' : '' ?>>🇬🇧 EN</option>
+                                <option value="ru" <?= $currentLang === 'ru' ? 'selected' : '' ?>>🇷🇺 RU</option>
+                            </select>
+                        </form>
                     </li>
                     
                     <!-- Профиль пользователя -->
@@ -91,11 +117,25 @@ if ($myId) {
                 <?php else: ?>
                     <!-- Меню для гостей -->
                     <li class="lang-switcher">
-                        <select onchange="(function(){const url=new URL(window.location);url.searchParams.set('lang',this.value);window.location.replace(url.toString());}).call(this)" class="lang-select">
-                            <option value="pl" <?= $currentLang === 'pl' ? 'selected' : '' ?>>🇵🇱 PL</option>
-                            <option value="en" <?= $currentLang === 'en' ? 'selected' : '' ?>>🇬🇧 EN</option>
-                            <option value="ru" <?= $currentLang === 'ru' ? 'selected' : '' ?>>🇷🇺 RU</option>
-                        </select>
+                        <form method="GET" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" style="margin:0; display:flex; align-items:center; gap:5px;">
+                            <?php
+                            foreach ($_GET as $key => $value) {
+                                if ($key === 'lang') continue;
+                                if (is_array($value)) continue;
+                                echo '<input type="hidden" name="' . htmlspecialchars($key) . '" value="' . htmlspecialchars($value) . '">';
+                            }
+                            ?>
+                            <select name="lang" class="lang-select" onchange="this.form.submit()">
+                                <option value="pl" <?= $currentLang === 'pl' ? 'selected' : '' ?>>🇵🇱 PL</option>
+                                <option value="en" <?= $currentLang === 'en' ? 'selected' : '' ?>>🇬🇧 EN</option>
+                                <option value="ru" <?= $currentLang === 'ru' ? 'selected' : '' ?>>🇷🇺 RU</option>
+                            </select>
+                        </form>
+                    </li>
+                    <li>
+                        <button type="button" class="btn-submit" style="width:auto; padding:6px 12px; font-size:0.8rem;" onclick="toggleTheme()">
+                            🌓
+                        </button>
                     </li>
                     <li><a href="login.php" style="font-weight: bold;"><?= htmlspecialchars(t('nav.login')) ?></a></li>
                     <li><a href="register.php" class="btn-register"><?= htmlspecialchars(t('nav.register')) ?></a></li>

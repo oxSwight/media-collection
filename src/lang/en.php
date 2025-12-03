@@ -8,6 +8,7 @@ return [
     ],
     'nav' => [
         'afisha' => '🎟 Afisha',
+        'activity' => '📰 Activity',
         'friends' => '❤️ Friends',
         'community' => '👥 Community',
         'add' => '+ ADD',
@@ -84,6 +85,10 @@ return [
         'stats_books' => '📚 Books:',
         'stats_all' => '⭐ All:',
         'friend_code' => 'CODE:',
+        'visibility' => 'Collection privacy',
+        'visibility_public' => 'Everyone can see my collection',
+        'visibility_friends' => 'Only friends can see my collection',
+        'visibility_private' => 'Only I can see my collection',
     ],
     'friends' => [
         'title' => 'Friends',
@@ -159,6 +164,12 @@ return [
         'show_all' => 'Show all movies',
         'found' => 'Found:',
         'refresh_btn' => '⟳ Refresh movies',
+        'add_to_collection' => '➕ Add to my collection',
+    ],
+    'activity' => [
+        'title' => 'Activity feed',
+        'empty' => 'No activity yet for you and your friends. Add some movies to get started.',
+        'add_item' => 'added to collection',
     ],
 ];
 

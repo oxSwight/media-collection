@@ -16,12 +16,12 @@ if ($targetUserId === $myId) {
     exit;
 }
 
-// 3. Получаем данные о владельце коллекции
-$userStmt = $pdo->prepare("SELECT username, avatar_path, bio FROM users WHERE id = ?");
+// 3. Получаем данные о владельце коллекции, включая приватность
+$userStmt = $pdo->prepare("SELECT username, avatar_path, bio, visibility FROM users WHERE id = ?");
 $userStmt->execute([$targetUserId]);
 $owner = $userStmt->fetch();
 
-// Если такого пользователя нет
+// Если такого пользователя нет или коллекция скрыта
 if (!$owner) {
     require_once 'includes/header.php';
     echo "<div class='container' style='text-align:center; padding:50px;'>
@@ -30,6 +30,38 @@ if (!$owner) {
           </div>";
     require_once 'includes/footer.php';
     exit;
+}
+
+// Проверка приватности: если профиль приватный / только для друзей
+$visibility = $owner['visibility'] ?? 'friends';
+if ($visibility === 'private') {
+    require_once 'includes/header.php';
+    echo "<div class='container' style='text-align:center; padding:50px;'>
+            <h2>" . htmlspecialchars(t('user_collection.user_not_found')) . "</h2>
+            <a href='community.php' class='btn-submit' style='width:auto;'>" . htmlspecialchars(t('user_collection.back_community')) . "</a>
+          </div>";
+    require_once 'includes/footer.php';
+    exit;
+}
+
+// visibility = friends: показываем только друзьям или админу
+if ($visibility === 'friends' && empty($_SESSION['is_admin'])) {
+    $friendCheck = $pdo->prepare("
+        SELECT 1 FROM friendships 
+        WHERE status = 'accepted' 
+          AND ((requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?))
+        LIMIT 1
+    ");
+    $friendCheck->execute([$myId, $targetUserId, $targetUserId, $myId]);
+    if (!$friendCheck->fetchColumn()) {
+        require_once 'includes/header.php';
+        echo "<div class='container' style='text-align:center; padding:50px;'>
+                <h2>" . htmlspecialchars(t('user_collection.user_not_found')) . "</h2>
+                <a href='community.php' class='btn-submit' style='width:auto;'>" . htmlspecialchars(t('user_collection.back_community')) . "</a>
+              </div>";
+        require_once 'includes/footer.php';
+        exit;
+    }
 }
 
 // 4. Получаем параметры пагинации

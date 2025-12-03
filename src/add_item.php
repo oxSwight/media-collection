@@ -52,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([
                     $_SESSION['user_id'], $title, $type, $author, $year, $rating, $imagePath, $review
                 ]);
+
+                $mediaId = (int)$pdo->lastInsertId();
+
+                // Логируем активность
+                $act = $pdo->prepare("INSERT INTO activities (user_id, media_id, type) VALUES (?, ?, 'add_item')");
+                $act->execute([$_SESSION['user_id'], $mediaId]);
                 
                 // 4. ПЕРЕНАПРАВЛЕНИЕ
                 // Так как HTML еще не выведен, header() сработает без ошибок.

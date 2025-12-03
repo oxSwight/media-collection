@@ -222,6 +222,14 @@ require_once 'includes/header.php';
                                 <?= nl2br(htmlspecialchars(mb_strimwidth($movie['overview'], 0, 140, "..."))) ?>
                             </p>
                         <?php endif; ?>
+
+                        <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();" style="margin-top: 10px;">
+                            <?= csrf_input(); ?>
+                            <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                            <button type="submit" class="btn-submit" style="width:100%; margin-top:5px;">
+                                <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
+                            </button>
+                        </form>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -261,6 +269,31 @@ require_once 'includes/header.php';
 </div>
 
 <script>
+// Сохраняем выбранный режим и запрос афиши
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.afisha-search-form');
+    if (!form) return;
+    const qInput = form.querySelector('input[name="q"]');
+
+    // Восстанавливаем
+    try {
+        const saved = JSON.parse(localStorage.getItem('afishaFilters') || '{}');
+        if (saved.q && qInput && !qInput.value) {
+            qInput.value = saved.q;
+        }
+    } catch (e) {}
+
+    form.addEventListener('submit', function() {
+        const formData = new FormData(form);
+        const data = {
+            q: formData.get('q') || '',
+            mode: formData.get('mode') || 'recommended'
+        };
+        try {
+            localStorage.setItem('afishaFilters', JSON.stringify(data));
+        } catch (e) {}
+    });
+});
 function openAfishaModal(card) {
     const title   = card.getAttribute('data-title') || '';
     const original = card.getAttribute('data-original-title') || '';

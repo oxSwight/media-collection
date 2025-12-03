@@ -8,6 +8,7 @@ return [
     ],
     'nav' => [
         'afisha' => '🎟 Afisza',
+        'activity' => '📰 Aktywność',
         'friends' => '❤️ Znajomi',
         'community' => '👥 Społeczność',
         'add' => '+ DODAJ',
@@ -84,6 +85,10 @@ return [
         'stats_books' => '📚 Książki:',
         'stats_all' => '⭐ Wszystkie:',
         'friend_code' => 'KOD:',
+        'visibility' => 'Prywatność kolekcji',
+        'visibility_public' => 'Każdy widzi moją kolekcję',
+        'visibility_friends' => 'Tylko znajomi widzą moją kolekcję',
+        'visibility_private' => 'Tylko ja widzę swoją kolekcję',
     ],
     'friends' => [
         'title' => 'Znajomi',
@@ -159,6 +164,12 @@ return [
         'show_all' => 'Pokaż wszystkie filmy',
         'found' => 'Znaleziono:',
         'refresh_btn' => '⟳ Odśwież filmy',
+        'add_to_collection' => '➕ Do mojej kolekcji',
+    ],
+    'activity' => [
+        'title' => 'Aktywność znajomych',
+        'empty' => 'Brak aktywności Twojej i Twoich znajomych. Dodaj filmy, aby zacząć.',
+        'add_item' => 'dodał do kolekcji',
     ],
 ];
 

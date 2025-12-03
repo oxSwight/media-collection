@@ -16,6 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $bio = trim($_POST['bio']);
     $newUsername = trim($_POST['username']);
+    $visibility = $_POST['visibility'] ?? 'friends';
+    $allowedVisibility = ['public', 'friends', 'private'];
+    if (!in_array($visibility, $allowedVisibility, true)) {
+        $visibility = 'friends';
+    }
 
     if (empty($newUsername)) {
         $error = t('profile.username_empty');
@@ -35,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$error) {
-            $update = $pdo->prepare("UPDATE users SET username = ?, bio = ?, avatar_path = ? WHERE id = ?");
-            $update->execute([$newUsername, $bio, $avatarPath, $userId]);
+            $update = $pdo->prepare("UPDATE users SET username = ?, bio = ?, avatar_path = ?, visibility = ? WHERE id = ?");
+            $update->execute([$newUsername, $bio, $avatarPath, $visibility, $userId]);
 
             $_SESSION['username'] = $newUsername;
             $success = t('profile.updated');
@@ -95,7 +100,6 @@ require_once 'includes/header.php';
     <form action="profile.php" method="POST" enctype="multipart/form-data">
         <?= csrf_input(); ?>
         
-        <!-- НОВОЕ ПОЛЕ: Смена имени -->
         <div class="form-group">
             <label><?= htmlspecialchars(t('profile.username')) ?></label>
             <input type="text" name="username" required value="<?= htmlspecialchars($user['username']) ?>">
@@ -110,6 +114,21 @@ require_once 'includes/header.php';
         <div class="form-group">
             <label><?= htmlspecialchars(t('profile.bio')) ?></label>
             <textarea name="bio" rows="4" placeholder="<?= htmlspecialchars(t('profile.bio_placeholder')) ?>"><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+        </div>
+
+        <div class="form-group">
+            <label><?= htmlspecialchars(t('profile.visibility')) ?></label>
+            <select name="visibility">
+                <option value="public" <?= ($user['visibility'] ?? 'friends') === 'public' ? 'selected' : '' ?>>
+                    <?= htmlspecialchars(t('profile.visibility_public')) ?>
+                </option>
+                <option value="friends" <?= ($user['visibility'] ?? 'friends') === 'friends' ? 'selected' : '' ?>>
+                    <?= htmlspecialchars(t('profile.visibility_friends')) ?>
+                </option>
+                <option value="private" <?= ($user['visibility'] ?? 'friends') === 'private' ? 'selected' : '' ?>>
+                    <?= htmlspecialchars(t('profile.visibility_private')) ?>
+                </option>
+            </select>
         </div>
         
         <button type="submit" class="btn-submit" style="width: auto;"><?= htmlspecialchars(t('item.save_changes')) ?></button>

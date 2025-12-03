@@ -182,6 +182,37 @@ require_once 'includes/header.php';
 
 <!-- JAVASCRIPT ДЛЯ ЖИВОГО ПОИСКА -->
 <script>
+// Сохранение и восстановление фильтров коллекции (поиск + тип)
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchForm = document.getElementById('searchForm');
+
+    // Восстанавливаем состояние
+    try {
+        const saved = JSON.parse(localStorage.getItem('collectionFilters') || '{}');
+        if (saved.q && searchInput && !searchInput.value) {
+            searchInput.value = saved.q;
+        }
+        if (saved.type && searchForm) {
+            const btn = searchForm.querySelector(`button[name="type"][value="${saved.type}"]`);
+            if (btn) btn.classList.add('active');
+        }
+    } catch (e) {}
+
+    // При отправке формы сохраняем фильтры
+    if (searchForm) {
+        searchForm.addEventListener('submit', function() {
+            const formData = new FormData(searchForm);
+            const data = {
+                q: formData.get('q') || '',
+                type: formData.get('type') || ''
+            };
+            try {
+                localStorage.setItem('collectionFilters', JSON.stringify(data));
+            } catch (e) {}
+        });
+    }
+});
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const searchForm = document.getElementById('searchForm');
