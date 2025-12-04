@@ -13,12 +13,17 @@ if (!$myId) {
 
 $search = trim($_GET['q'] ?? '');
 $mode   = $_GET['mode'] ?? 'recommended'; // recommended | all
+$refresh = isset($_GET['refresh']); // Флаг обновления для рандомизации
 
 // Параметры пагинации
 $pagination = get_pagination_params(20);
 $page    = $pagination['page'];
 $perPage = $pagination['per_page'];
 $offset  = $pagination['offset'];
+
+// Seed для рандомизации (используем timestamp для уникальности)
+$randomSeed = $refresh ? time() : ($_SESSION['afisha_random_seed'] ?? time());
+$_SESSION['afisha_random_seed'] = $randomSeed;
 
 // 1. Собираем список уже просмотренных фильмов (по названию)
 $seenTitles = [];
@@ -81,8 +86,10 @@ $totalPages = max(1, (int)ceil($totalItems / $perPage));
 
 // Получаем сами фильмы
 if ($mode === 'all') {
-    // Для "Все фильмы" - рандомный порядок
-    $dataSql .= " ORDER BY RANDOM() LIMIT :limit OFFSET :offset";
+    // Для "Все фильмы" - рандомный порядок с seed для стабильности при пагинации
+    // Используем MD5 hash от id и seed для псевдослучайной сортировки
+    $dataSql .= " ORDER BY MD5(id::text || :seed) LIMIT :limit OFFSET :offset";
+    $dataParams[':seed'] = (string)$randomSeed;
 } else {
     // Для "Рекомендованных" - сначала новые релизы
     $dataSql .= " ORDER BY release_date DESC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
@@ -104,7 +111,7 @@ $avgVoteAverage = 0;
 $popularityCount = 0;
 $voteCount = 0;
 
-// Получаем все фильмы пользователя для анализа
+// Получаем все фильмы пользователя для анализа (с учетом оценок)
 $userMoviesStmt = $pdo->prepare("
     SELECT genres, review, title, author_director, release_year, rating
     FROM media_items 
@@ -113,15 +120,47 @@ $userMoviesStmt = $pdo->prepare("
 $userMoviesStmt->execute([$myId]);
 $userMovies = $userMoviesStmt->fetchAll();
 
-// Анализ жанров и годов
+// Вычисляем среднюю оценку пользователя и предпочтения по высоким оценкам
+$userAvgRating = 0;
+$highRatedMovies = []; // Фильмы с оценкой >= 7
+$veryHighRatedMovies = []; // Фильмы с оценкой >= 9
+$ratings = array_filter(array_column($userMovies, 'rating'));
+if (!empty($ratings)) {
+    $userAvgRating = array_sum($ratings) / count($ratings);
+    foreach ($userMovies as $um) {
+        if (!empty($um['rating'])) {
+            $rating = (int)$um['rating'];
+            if ($rating >= 9) {
+                $veryHighRatedMovies[] = $um;
+            } elseif ($rating >= 7) {
+                $highRatedMovies[] = $um;
+            }
+        }
+    }
+}
+
+// Анализ жанров и годов (с учетом оценок - высоко оцененные фильмы имеют больший вес)
 foreach ($userMovies as $um) {
+    $weight = 1; // Базовый вес
+    if (!empty($um['rating'])) {
+        $rating = (int)$um['rating'];
+        // Высоко оцененные фильмы имеют больший вес в анализе
+        if ($rating >= 9) {
+            $weight = 3; // Очень высоко оцененные
+        } elseif ($rating >= 7) {
+            $weight = 2; // Высоко оцененные
+        } elseif ($rating <= 4) {
+            $weight = 0.5; // Низко оцененные - меньше влияют
+        }
+    }
+    
     // Жанры
     if (!empty($um['genres'])) {
         $parts = preg_split('/[,\s]+/', $um['genres']);
         foreach ($parts as $g) {
             $g = trim($g);
             if ($g === '') continue;
-            $favoriteGenres[$g] = ($favoriteGenres[$g] ?? 0) + 1;
+            $favoriteGenres[$g] = ($favoriteGenres[$g] ?? 0) + $weight;
         }
     }
     
@@ -130,7 +169,20 @@ foreach ($userMovies as $um) {
         $year = (int)$um['release_year'];
         // Группируем по десятилетиям для более гибкого анализа
         $decade = floor($year / 10) * 10;
-        $favoriteYears[$decade] = ($favoriteYears[$decade] ?? 0) + 1;
+        $favoriteYears[$decade] = ($favoriteYears[$decade] ?? 0) + $weight;
+    }
+}
+
+// Анализ высоко оцененных фильмов отдельно (для более точных рекомендаций)
+foreach ($veryHighRatedMovies as $um) {
+    if (!empty($um['genres'])) {
+        $parts = preg_split('/[,\s]+/', $um['genres']);
+        foreach ($parts as $g) {
+            $g = trim($g);
+            if ($g !== '') {
+                $favoriteGenres[$g] = ($favoriteGenres[$g] ?? 0) + 2; // Дополнительный бонус
+            }
+        }
     }
 }
 
@@ -180,7 +232,43 @@ $topDecades = array_slice(array_keys($favoriteYears), 0, 3);
 
 // Улучшенная фильтрация рекомендованных фильмов с учетом всех факторов
 $recommendedMovies = [];
-if (!empty($topGenres) || !empty($topKeywords) || !empty($topThemes) || !empty($topDecades)) {
+$userMovieCount = count($userMovies);
+
+// Если у пользователя мало фильмов, показываем больше рекомендаций
+if ($userMovieCount < 3) {
+    // Для новых пользователей показываем топ-фильмы по популярности и рейтингу
+    foreach ($movies as $m) {
+        $score = 0;
+        
+        // Базовый бонус за высокий рейтинг
+        if (!empty($m['vote_average']) && (float)$m['vote_average'] >= 7.0) {
+            $score += 3;
+        } elseif (!empty($m['vote_average']) && (float)$m['vote_average'] >= 6.0) {
+            $score += 1;
+        }
+        
+        // Бонус за популярность
+        if (!empty($m['popularity']) && (float)$m['popularity'] > 50) {
+            $score += 2;
+        } elseif (!empty($m['popularity']) && (float)$m['popularity'] > 10) {
+            $score += 1;
+        }
+        
+        // Бонус за недавний релиз
+        if (!empty($m['release_date'])) {
+            $releaseYear = (int)date('Y', strtotime($m['release_date']));
+            $currentYear = (int)date('Y');
+            if ($releaseYear >= $currentYear - 1) {
+                $score += 1;
+            }
+        }
+        
+        if ($score > 0) {
+            $m['recommendation_score'] = $score;
+            $recommendedMovies[] = $m;
+        }
+    }
+} elseif (!empty($topGenres) || !empty($topKeywords) || !empty($topThemes) || !empty($topDecades)) {
     foreach ($movies as $m) {
         $score = 0;
         
@@ -243,10 +331,24 @@ if (!empty($topGenres) || !empty($topKeywords) || !empty($topThemes) || !empty($
             } elseif ($voteAvg >= 6.0) {
                 $score += 1;
             }
+            
+            // Дополнительный бонус, если рейтинг TMDb близок к средней оценке пользователя
+            if ($userAvgRating > 0 && abs($voteAvg - $userAvgRating) <= 1.5) {
+                $score += 1;
+            }
         }
         
-        // Если фильм набрал хотя бы 1 балл, добавляем в рекомендации
-        if ($score > 0) {
+        // Добавляем фильм в рекомендации, если:
+        // 1. Набрал хотя бы 1 балл ИЛИ
+        // 2. Имеет высокий рейтинг TMDb (>= 7.0) ИЛИ
+        // 3. Имеет высокую популярность (> 50) ИЛИ
+        // 4. Если у пользователя мало фильмов в коллекции - показываем больше рекомендаций
+        $userMovieCount = count($userMovies);
+        $minScore = $userMovieCount < 5 ? 0 : 1; // Если меньше 5 фильмов, показываем все с score >= 0
+        
+        if ($score >= $minScore || 
+            (!empty($m['vote_average']) && (float)$m['vote_average'] >= 7.0) ||
+            (!empty($m['popularity']) && (float)$m['popularity'] > 50)) {
             $m['recommendation_score'] = $score;
             $recommendedMovies[] = $m;
         }
@@ -276,6 +378,44 @@ if (!empty($topGenres) || !empty($topKeywords) || !empty($topThemes) || !empty($
     });
 }
 
+// Если рекомендаций слишком мало, добавляем фильмы с высоким рейтингом/популярностью
+if (count($recommendedMovies) < 10 && $mode === 'recommended') {
+    $existingIds = array_column($recommendedMovies, 'id');
+    foreach ($movies as $m) {
+        if (in_array($m['id'], $existingIds)) continue;
+        
+        $addScore = 0;
+        if (!empty($m['vote_average']) && (float)$m['vote_average'] >= 7.5) {
+            $addScore += 2;
+        }
+        if (!empty($m['popularity']) && (float)$m['popularity'] > 30) {
+            $addScore += 1;
+        }
+        
+        if ($addScore > 0) {
+            $m['recommendation_score'] = $addScore;
+            $recommendedMovies[] = $m;
+        }
+    }
+    
+    // Пересортируем с учетом новых фильмов
+    usort($recommendedMovies, function($a, $b) {
+        $scoreA = $a['recommendation_score'] ?? 0;
+        $scoreB = $b['recommendation_score'] ?? 0;
+        if ($scoreB !== $scoreA) {
+            return $scoreB - $scoreA;
+        }
+        $popA = (float)($a['popularity'] ?? 0);
+        $popB = (float)($b['popularity'] ?? 0);
+        if ($popB !== $popA) {
+            return $popB <=> $popA;
+        }
+        $voteA = (float)($a['vote_average'] ?? 0);
+        $voteB = (float)($b['vote_average'] ?? 0);
+        return $voteB <=> $voteA;
+    });
+}
+
 // Выбор набора для отображения
 $moviesToShow = ($mode === 'all' || empty($recommendedMovies)) ? $movies : $recommendedMovies;
 
@@ -295,6 +435,11 @@ require_once 'includes/header.php';
         <a href="admin_afisha_refresh.php" class="btn-register" style="text-decoration: none;">
             <?= htmlspecialchars(t('afisha.refresh_btn')) ?>
         </a>
+        <?php if ($mode === 'all'): ?>
+            <a href="afisha.php?mode=all&refresh=1<?= $search ? '&q=' . urlencode($search) : '' ?>" class="btn-register" style="text-decoration: none; margin-left: 10px;">
+                🔄 <?= htmlspecialchars(t('afisha.randomize_btn') ?? 'Losuj filmy') ?>
+            </a>
+        <?php endif; ?>
     </div>
 
     <p style="color:#636e72; margin-bottom:20px;">
@@ -376,14 +521,25 @@ require_once 'includes/header.php';
                             </p>
                         <?php endif; ?>
 
-                        <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
-                            <?= csrf_input(); ?>
-                            <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
-                            <button type="submit" class="afisha-add-btn">
-                                <span class="plus-icon">+</span>
-                                <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
-                            </button>
-                        </form>
+                        <div style="display: flex; gap: 5px; flex-direction: column;">
+                            <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
+                                <?= csrf_input(); ?>
+                                <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                <button type="submit" class="afisha-add-btn">
+                                    <span class="plus-icon">+</span>
+                                    <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
+                                </button>
+                            </form>
+                            <form method="POST" action="watchlist.php" onsubmit="event.stopPropagation();">
+                                <?= csrf_input(); ?>
+                                <input type="hidden" name="add_to_watchlist" value="1">
+                                <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                <input type="hidden" name="title" value="<?= htmlspecialchars($movie['title']) ?>">
+                                <button type="submit" class="afisha-add-btn" style="background: #00b894 !important;">
+                                    ⭐ <?= htmlspecialchars(t('watchlist.add') ?? 'В список желаний') ?>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>

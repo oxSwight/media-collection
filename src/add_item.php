@@ -60,24 +60,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 curl_setopt_array($ch, [
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_MAXREDIRS => 3,
-                    CURLOPT_TIMEOUT => 10,
+                    CURLOPT_MAXREDIRS => 5,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_CONNECTTIMEOUT => 10,
                     CURLOPT_USERAGENT => 'MediaLib/1.0',
+                    CURLOPT_SSL_VERIFYPEER => false,
                 ]);
                 $imageData = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
                 curl_close($ch);
                 
-                if ($imageData !== false && $httpCode === 200 && strlen($imageData) > 0) {
-                    // Определяем расширение
+                if ($imageData !== false && $httpCode === 200 && strlen($imageData) > 100) {
+                    // Определяем расширение из Content-Type или URL
                     $ext = 'jpg';
-                    $urlPath = parse_url($imageUrl, PHP_URL_PATH);
-                    if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $urlPath, $matches)) {
-                        $ext = strtolower($matches[1]);
-                        if ($ext === 'jpeg') $ext = 'jpg';
+                    if ($contentType) {
+                        if (strpos($contentType, 'jpeg') !== false || strpos($contentType, 'jpg') !== false) {
+                            $ext = 'jpg';
+                        } elseif (strpos($contentType, 'png') !== false) {
+                            $ext = 'png';
+                        } elseif (strpos($contentType, 'webp') !== false) {
+                            $ext = 'webp';
+                        } elseif (strpos($contentType, 'gif') !== false) {
+                            $ext = 'gif';
+                        }
+                    } else {
+                        $urlPath = parse_url($imageUrl, PHP_URL_PATH);
+                        if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $urlPath, $matches)) {
+                            $ext = strtolower($matches[1]);
+                            if ($ext === 'jpeg') $ext = 'jpg';
+                        }
                     }
                     
-                    $filename = 'img_' . uniqid() . '.' . $ext;
+                    $filename = 'img_' . uniqid('', true) . '.' . $ext;
                     $uploadDir = __DIR__ . '/uploads/';
                     
                     // Проверяем, существует ли директория
@@ -87,18 +102,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $filePath = $uploadDir . $filename;
                     
+                    // Сохраняем файл
                     if (file_put_contents($filePath, $imageData) !== false) {
-                        $imagePath = 'uploads/' . $filename;
+                        // Проверяем, что файл действительно изображение
+                        $finfo = new finfo(FILEINFO_MIME_TYPE);
+                        $mime = $finfo->file($filePath);
+                        if (strpos($mime, 'image/') === 0) {
+                            $imagePath = 'uploads/' . $filename;
+                        } else {
+                            // Если это не изображение, удаляем файл и используем URL
+                            @unlink($filePath);
+                            $imagePath = $imageUrl;
+                        }
                     } else {
-                        // Если не удалось сохранить локально, сохраняем URL
-                        $imagePath = $imageUrl;
+                        // Если не удалось сохранить локально, пробуем через handle_image_from_url
+                        require_once __DIR__ . '/includes/upload.php';
+                        $result = handle_image_from_url($imageUrl);
+                        $imagePath = $result ?: null;
                     }
                 } else {
-                    // Если не удалось скачать, сохраняем URL напрямую
-                    $imagePath = $imageUrl;
+                    // Если не удалось скачать, пробуем через handle_image_from_url
+                    require_once __DIR__ . '/includes/upload.php';
+                    $result = handle_image_from_url($imageUrl);
+                    $imagePath = $result ?: null;
                 }
             } else {
-                $imagePath = $imageUrl; // Сохраняем как есть, если это не валидный URL
+                $imagePath = null; // Не валидный URL - не сохраняем
             }
         }
 

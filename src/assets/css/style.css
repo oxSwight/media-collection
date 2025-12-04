@@ -100,13 +100,54 @@ body {
     z-index: 100;
 }
 
-.navbar .container {
+.navbar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
+    gap: 15px;
+}
+
+.navbar .container {
+    display: flex;
+    flex-direction: column;
     gap: 15px;
     padding-bottom: 0;
-    /* В меню лишний отступ не нужен */
+}
+
+/* Гамбургер-кнопка */
+.mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 101;
+}
+
+.mobile-menu-toggle span {
+    width: 100%;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: all 0.3s ease;
+    transform-origin: center;
+}
+
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
 }
 
 .logo {
@@ -1077,27 +1118,62 @@ a[href="add_item.php"]:hover {
     .pagination-ellipsis {
         padding: 0 3px;
     }
-    /* 1. Меню */
-    .navbar .container {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-        padding-bottom: 0;
+    
+    /* Гамбургер-меню */
+    .mobile-menu-toggle {
+        display: flex;
     }
-    .nav-links {
-        justify-content: center;
+    
+    .navbar-header {
         width: 100%;
-        gap: 10px;
     }
-    .nav-links li {
-        max-width: 100%;
-        justify-content: center;
-    }
-    .nav-links a {
-        max-width: 90vw;
+    
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 0;
+        background: var(--white);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 15px 0;
+        margin-top: 10px;
+        max-height: 0;
         overflow: hidden;
-        text-overflow: ellipsis;
-        display: block;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    
+    .nav-links.mobile-open {
+        display: flex;
+        max-height: 600px;
+        padding: 15px 0;
+    }
+    
+    .nav-links li {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 10px 20px;
+        border-bottom: 1px solid #f1f2f6;
+    }
+    
+    .nav-links li:last-child {
+        border-bottom: none;
+    }
+    
+    .nav-links a,
+    .nav-links button,
+    .nav-links form {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 8px 0;
+    }
+    
+    .nav-links .lang-switcher form {
+        width: 100%;
+    }
+    
+    .nav-links .lang-select {
+        width: 100%;
     }
     /* 2. Шапка */
     .header-actions {
@@ -1198,5 +1274,52 @@ a[href="add_item.php"]:hover {
     }
     .btn-submit {
         font-size: 0.9rem;
+    }
+}
+
+/* Стили для печати */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .navbar,
+    .header-actions,
+    .search-bar-container,
+    .pagination,
+    .media-actions,
+    button,
+    a[href]:not([href^="#"]):not([href^="javascript:"]) {
+        display: none !important;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .media-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        page-break-inside: avoid;
+    }
+    
+    .media-card {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .media-image {
+        height: 200px;
+    }
+    
+    h2, h3 {
+        page-break-after: avoid;
+    }
+    
+    @page {
+        margin: 1.5cm;
     }
 }

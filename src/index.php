@@ -88,7 +88,12 @@ require_once 'includes/header.php';
         <!-- Заголовок и кнопка Добавить -->
         <div class="header-actions">
             <h2><?= htmlspecialchars(t('collection.title')) ?></h2>
-            <a href="add_item.php" class="btn-register" style="text-decoration: none;"><?= htmlspecialchars(t('collection.add_new')) ?></a>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="add_item.php" class="btn-register" style="text-decoration: none;"><?= htmlspecialchars(t('collection.add_new')) ?></a>
+                <a href="export.php?format=json" class="btn-register" style="text-decoration: none; background: #00b894;">📥 JSON</a>
+                <a href="export.php?format=csv" class="btn-register" style="text-decoration: none; background: #00b894;">📥 CSV</a>
+                <button onclick="window.print()" class="btn-register" style="background: #6c5ce7;">🖨️ <?= htmlspecialchars(t('export.print') ?? 'Печать') ?></button>
+            </div>
         </div>
 
         <!-- Панель поиска -->

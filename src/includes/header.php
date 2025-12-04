@@ -43,15 +43,45 @@ if ($myId) {
         }
         
         window.csrfToken = <?= json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+        
+        // Функция переключения мобильного меню
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('navLinks');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (navLinks) {
+                navLinks.classList.toggle('mobile-open');
+                if (toggle) {
+                    toggle.classList.toggle('active');
+                }
+            }
+        }
+        
+        // Закрываем меню при клике вне его
+        document.addEventListener('click', function(event) {
+            const nav = document.querySelector('.navbar');
+            const navLinks = document.getElementById('navLinks');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (nav && navLinks && toggle && !nav.contains(event.target) && navLinks.classList.contains('mobile-open')) {
+                navLinks.classList.remove('mobile-open');
+                toggle.classList.remove('active');
+            }
+        });
     </script>
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
-            <a href="index.php" class="logo">
-                <span style="font-size: 1.8rem;">🍿</span> <?= htmlspecialchars(t('site.title')) ?>
-            </a>
-            <ul class="nav-links">
+            <div class="navbar-header">
+                <a href="index.php" class="logo">
+                    <span style="font-size: 1.8rem;">🍿</span> <?= htmlspecialchars(t('site.title')) ?>
+                </a>
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <ul class="nav-links" id="navLinks">
                 <?php if ($myId): ?>
                     <li>
                         <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему">
@@ -60,8 +90,16 @@ if ($myId) {
                     </li>
                     <!-- Лента активности -->
                     <li><a href="activity.php"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
+                    <!-- Аналитика -->
+                    <li><a href="analytics.php"><?= htmlspecialchars(t('nav.analytics') ?? 'Аналитика') ?></a></li>
+                    <!-- Список желаний -->
+                    <li><a href="watchlist.php"><?= htmlspecialchars(t('nav.watchlist') ?? '⭐ Список желаний') ?></a></li>
+                    <!-- Календарь релизов -->
+                    <li><a href="releases_calendar.php"><?= htmlspecialchars(t('nav.calendar') ?? '📅 Календарь') ?></a></li>
                     <!-- Афиша (видят все залогиненные) -->
                     <li><a href="afisha.php"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
+                    <!-- Импорт -->
+                    <li><a href="import.php"><?= htmlspecialchars(t('nav.import') ?? '📥 Импорт') ?></a></li>
 
                     <!-- Друзья (видят все) -->
                     <li><a href="friends.php"><?= htmlspecialchars(t('nav.friends')) ?></a></li>

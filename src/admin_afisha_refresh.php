@@ -116,6 +116,6 @@ for ($page = 1; $page <= $maxPages; $page++) {
     }
 }
 
-// Po zakończeniu – ciche przekierowanie z powrotem na afiszę
-header('Location: afisha.php');
+// Po zakończeniu – przekierowanie с параметром refresh для рандомизации
+header('Location: afisha.php?refresh=1&mode=all');
 exit;
