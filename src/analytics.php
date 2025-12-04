@@ -81,26 +81,26 @@ require_once 'includes/header.php';
 ?>
 
 <div class="dashboard">
-    <h2><?= htmlspecialchars(t('analytics.title') ?? 'Аналитика коллекции') ?></h2>
+    <h2><?= htmlspecialchars(t('analytics.title')) ?></h2>
     
     <div class="analytics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
         <div class="analytics-card" style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.total_items') ?? 'Всего позиций') ?></h3>
+            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.total_items')) ?></h3>
             <div style="font-size: 2.5rem; font-weight: bold; color: var(--text);"><?= $totalItems ?></div>
         </div>
         
         <div class="analytics-card" style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.avg_rating') ?? 'Средняя оценка') ?></h3>
+            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.avg_rating')) ?></h3>
             <div style="font-size: 2.5rem; font-weight: bold; color: var(--text);"><?= $avgRating ?: '-' ?></div>
         </div>
         
         <div class="analytics-card" style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.movies') ?? 'Фильмы') ?></h3>
+            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.movies')) ?></h3>
             <div style="font-size: 2.5rem; font-weight: bold; color: var(--text);"><?= $typesData['movie'] ?></div>
         </div>
         
         <div class="analytics-card" style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.books') ?? 'Книги') ?></h3>
+            <h3 style="margin: 0 0 10px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.books')) ?></h3>
             <div style="font-size: 2.5rem; font-weight: bold; color: var(--text);"><?= $typesData['book'] ?></div>
         </div>
     </div>
@@ -108,7 +108,7 @@ require_once 'includes/header.php';
     <!-- График по годам выпуска -->
     <?php if (!empty($yearsData)): ?>
     <div class="analytics-section" style="background: white; padding: 25px; border-radius: 15px; box-shadow: var(--shadow); margin-bottom: 30px;">
-        <h3 style="margin: 0 0 20px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.by_year') ?? 'Распределение по годам выпуска') ?></h3>
+        <h3 style="margin: 0 0 20px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.by_year')) ?></h3>
         <canvas id="yearsChart" style="max-height: 400px;"></canvas>
     </div>
     <?php endif; ?>
@@ -116,7 +116,7 @@ require_once 'includes/header.php';
     <!-- График средних оценок по годам -->
     <?php if (!empty($avgRatingsByYear)): ?>
     <div class="analytics-section" style="background: white; padding: 25px; border-radius: 15px; box-shadow: var(--shadow); margin-bottom: 30px;">
-        <h3 style="margin: 0 0 20px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.avg_rating_by_year') ?? 'Средние оценки по годам') ?></h3>
+        <h3 style="margin: 0 0 20px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.avg_rating_by_year')) ?></h3>
         <canvas id="ratingsChart" style="max-height: 400px;"></canvas>
     </div>
     <?php endif; ?>
@@ -124,7 +124,7 @@ require_once 'includes/header.php';
     <!-- Статистика по жанрам -->
     <?php if (!empty($topGenres)): ?>
     <div class="analytics-section" style="background: white; padding: 25px; border-radius: 15px; box-shadow: var(--shadow); margin-bottom: 30px;">
-        <h3 style="margin: 0 0 20px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.by_genres') ?? 'Топ жанров') ?></h3>
+        <h3 style="margin: 0 0 20px 0; color: var(--primary);"><?= htmlspecialchars(t('analytics.by_genres')) ?></h3>
         <canvas id="genresChart" style="max-height: 400px;"></canvas>
     </div>
     <?php endif; ?>
@@ -145,7 +145,7 @@ if (yearsCtx) {
         data: {
             labels: years,
             datasets: [{
-                label: '<?= htmlspecialchars(t('analytics.items_count') ?? 'Количество') ?>',
+                label: '<?= htmlspecialchars(t('analytics.items_count')) ?>',
                 data: counts,
                 backgroundColor: 'rgba(108, 92, 231, 0.6)',
                 borderColor: 'rgba(108, 92, 231, 1)',
@@ -181,7 +181,7 @@ if (ratingsCtx) {
         data: {
             labels: years,
             datasets: [{
-                label: '<?= htmlspecialchars(t('analytics.avg_rating') ?? 'Средняя оценка') ?>',
+                label: '<?= htmlspecialchars(t('analytics.avg_rating')) ?>',
                 data: ratings,
                 borderColor: 'rgba(253, 121, 168, 1)',
                 backgroundColor: 'rgba(253, 121, 168, 0.1)',

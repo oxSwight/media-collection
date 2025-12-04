@@ -202,5 +202,16 @@ return [
         'reset_password_check' => 'Sprawdź swoją skrzynkę pocztową i kliknij link w wiadomości, aby zresetować hasło.',
         'reset_password_error' => 'Błąd wysyłania emaila',
     ],
+    'analytics' => [
+        'title' => 'Analiza kolekcji',
+        'total_items' => 'Wszystkie pozycje',
+        'avg_rating' => 'Średnia ocena',
+        'movies' => 'Filmy',
+        'books' => 'Książki',
+        'by_year' => 'Rozkład według roku wydania',
+        'avg_rating_by_year' => 'Średnie oceny według lat',
+        'by_genres' => 'Top gatunki',
+        'items_count' => 'Liczba',
+    ],
 ];
 

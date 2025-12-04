@@ -202,5 +202,16 @@ return [
         'reset_password_check' => 'Check your inbox and click the link in the message to reset your password.',
         'reset_password_error' => 'Email sending error',
     ],
+    'analytics' => [
+        'title' => 'Collection Analytics',
+        'total_items' => 'Total Items',
+        'avg_rating' => 'Average Rating',
+        'movies' => 'Movies',
+        'books' => 'Books',
+        'by_year' => 'Distribution by Release Year',
+        'avg_rating_by_year' => 'Average Ratings by Year',
+        'by_genres' => 'Top Genres',
+        'items_count' => 'Count',
+    ],
 ];
 
