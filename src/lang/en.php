@@ -9,6 +9,10 @@ return [
     'nav' => [
         'afisha' => '🎟 Afisha',
         'activity' => '📰 Activity',
+        'analytics' => '📊 Analytics',
+        'watchlist' => '⭐ Watchlist',
+        'calendar' => '📅 Calendar',
+        'import' => '📥 Import',
         'friends' => '❤️ Friends',
         'community' => '👥 Community',
         'add' => '+ ADD',
@@ -169,7 +173,17 @@ return [
         'show_all' => 'Show all movies',
         'found' => 'Found:',
         'refresh_btn' => '⟳ Refresh movies',
+        'randomize_btn' => '🔄 Randomize movies',
         'add_to_collection' => 'Add to my collection',
+    ],
+    'watchlist' => [
+        'title' => 'Watchlist',
+        'add' => 'Add to watchlist',
+        'remove' => 'Remove',
+        'empty' => 'Your watchlist is empty',
+        'browse_afisha' => 'Browse afisha',
+        'total' => 'Total',
+        'added' => 'Added to watchlist',
     ],
     'activity' => [
         'title' => 'Activity feed',

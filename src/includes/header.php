@@ -91,15 +91,15 @@ if ($myId) {
                     <!-- Лента активности -->
                     <li><a href="activity.php"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
                     <!-- Аналитика -->
-                    <li><a href="analytics.php"><?= htmlspecialchars(t('nav.analytics') ?? 'Аналитика') ?></a></li>
+                    <li><a href="analytics.php"><?= htmlspecialchars(t('nav.analytics')) ?></a></li>
                     <!-- Список желаний -->
-                    <li><a href="watchlist.php"><?= htmlspecialchars(t('nav.watchlist') ?? '⭐ Список желаний') ?></a></li>
+                    <li><a href="watchlist.php"><?= htmlspecialchars(t('nav.watchlist')) ?></a></li>
                     <!-- Календарь релизов -->
-                    <li><a href="releases_calendar.php"><?= htmlspecialchars(t('nav.calendar') ?? '📅 Календарь') ?></a></li>
+                    <li><a href="releases_calendar.php"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
                     <!-- Афиша (видят все залогиненные) -->
                     <li><a href="afisha.php"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
                     <!-- Импорт -->
-                    <li><a href="import.php"><?= htmlspecialchars(t('nav.import') ?? '📥 Импорт') ?></a></li>
+                    <li><a href="import.php"><?= htmlspecialchars(t('nav.import')) ?></a></li>
 
                     <!-- Друзья (видят все) -->
                     <li><a href="friends.php"><?= htmlspecialchars(t('nav.friends')) ?></a></li>

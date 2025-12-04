@@ -594,10 +594,17 @@ a[href="add_item.php"]:hover {
     flex-direction: column;
 }
 
-/* Кнопка добавления в коллекцию в афише - прикреплена к низу, красный фон */
-.media-content form {
+/* Кнопки в афише - прикреплены к низу карточки */
+.afisha-buttons-wrapper {
     margin-top: auto;
     padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.media-content form {
+    margin: 0;
 }
 
 .afisha-add-btn {
@@ -614,10 +621,34 @@ a[href="add_item.php"]:hover {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    font-size: 0.9rem;
 }
 
 .afisha-add-btn:hover {
     background: #c0392b !important;
+    transform: translateY(-2px);
+}
+
+.afisha-watchlist-btn {
+    background: #00b894 !important;
+    color: white !important;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.afisha-watchlist-btn:hover {
+    background: #00a085 !important;
+    transform: translateY(-2px);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(214, 48, 49, 0.4);
 }

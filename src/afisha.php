@@ -437,7 +437,7 @@ require_once 'includes/header.php';
         </a>
         <?php if ($mode === 'all'): ?>
             <a href="afisha.php?mode=all&refresh=1<?= $search ? '&q=' . urlencode($search) : '' ?>" class="btn-register" style="text-decoration: none; margin-left: 10px;">
-                🔄 <?= htmlspecialchars(t('afisha.randomize_btn') ?? 'Losuj filmy') ?>
+                <?= htmlspecialchars(t('afisha.randomize_btn')) ?>
             </a>
         <?php endif; ?>
     </div>
@@ -521,7 +521,7 @@ require_once 'includes/header.php';
                             </p>
                         <?php endif; ?>
 
-                        <div style="display: flex; gap: 5px; flex-direction: column;">
+                        <div class="afisha-buttons-wrapper">
                             <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
                                 <?= csrf_input(); ?>
                                 <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
@@ -535,8 +535,8 @@ require_once 'includes/header.php';
                                 <input type="hidden" name="add_to_watchlist" value="1">
                                 <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
                                 <input type="hidden" name="title" value="<?= htmlspecialchars($movie['title']) ?>">
-                                <button type="submit" class="afisha-add-btn" style="background: #00b894 !important;">
-                                    ⭐ <?= htmlspecialchars(t('watchlist.add') ?? 'В список желаний') ?>
+                                <button type="submit" class="afisha-watchlist-btn">
+                                    ⭐ <?= htmlspecialchars(t('watchlist.add')) ?>
                                 </button>
                             </form>
                         </div>

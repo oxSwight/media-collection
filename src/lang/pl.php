@@ -9,6 +9,10 @@ return [
     'nav' => [
         'afisha' => '🎟 Afisza',
         'activity' => '📰 Aktywność',
+        'analytics' => '📊 Analiza',
+        'watchlist' => '⭐ Lista życzeń',
+        'calendar' => '📅 Kalendarz',
+        'import' => '📥 Import',
         'friends' => '❤️ Znajomi',
         'community' => '👥 Społeczność',
         'add' => '+ DODAJ',
@@ -169,7 +173,17 @@ return [
         'show_all' => 'Pokaż wszystkie filmy',
         'found' => 'Znaleziono:',
         'refresh_btn' => '⟳ Odśwież filmy',
+        'randomize_btn' => '🔄 Losuj filmy',
         'add_to_collection' => 'Do mojej kolekcji',
+    ],
+    'watchlist' => [
+        'title' => 'Lista życzeń',
+        'add' => 'Do listy życzeń',
+        'remove' => 'Usuń',
+        'empty' => 'Twoja lista życzeń jest pusta',
+        'browse_afisha' => 'Przeglądaj afiszę',
+        'total' => 'Wszystko',
+        'added' => 'Dodano do listy życzeń',
     ],
     'activity' => [
         'title' => 'Aktywność znajomych',
