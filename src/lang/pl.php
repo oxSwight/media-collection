@@ -191,6 +191,13 @@ return [
         'title' => 'Aktywność znajomych',
         'empty' => 'Brak aktywności Twojej i Twoich znajomych. Dodaj filmy, aby zacząć.',
         'add_item' => 'dodał do kolekcji',
+        'just_now' => 'przed chwilą',
+        'minute_ago' => 'minutę temu',
+        'minutes_ago' => 'minut temu',
+        'hour_ago' => 'godzinę temu',
+        'hours_ago' => 'godzin temu',
+        'day_ago' => 'dzień temu',
+        'days_ago' => 'dni temu',
     ],
     'email' => [
         'reset_password_subject' => 'Reset hasła - MediaLib',

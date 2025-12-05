@@ -191,6 +191,13 @@ return [
         'title' => 'Activity feed',
         'empty' => 'No activity yet for you and your friends. Add some movies to get started.',
         'add_item' => 'added to collection',
+        'just_now' => 'just now',
+        'minute_ago' => 'minute ago',
+        'minutes_ago' => 'minutes ago',
+        'hour_ago' => 'hour ago',
+        'hours_ago' => 'hours ago',
+        'day_ago' => 'day ago',
+        'days_ago' => 'days ago',
     ],
     'email' => [
         'reset_password_subject' => 'Password Reset - MediaLib',

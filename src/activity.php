@@ -31,7 +31,9 @@ if (empty($idsForFeed)) {
     // Лента последних 50 действий
     $inPlaceholders = implode(',', array_fill(0, count($idsForFeed), '?'));
     $sql = "
-        SELECT a.*, u.username, u.avatar_path, m.title, m.type
+        SELECT a.*, u.username, u.avatar_path, u.id as user_id,
+               m.title, m.type, m.rating, m.release_year, 
+               m.author_director, m.image_path, m.id as media_id
         FROM activities a
         JOIN users u ON a.user_id = u.id
         LEFT JOIN media_items m ON a.media_id = m.id
@@ -42,6 +44,27 @@ if (empty($idsForFeed)) {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($idsForFeed);
     $activities = $stmt->fetchAll();
+    
+    // Функция для форматирования относительного времени
+    function timeAgo($datetime) {
+        $timestamp = strtotime($datetime);
+        $diff = time() - $timestamp;
+        
+        if ($diff < 60) return t('activity.just_now') ?? 'только что';
+        if ($diff < 3600) {
+            $mins = floor($diff / 60);
+            return $mins . ' ' . ($mins === 1 ? (t('activity.minute_ago') ?? 'минуту назад') : (t('activity.minutes_ago') ?? 'минут назад'));
+        }
+        if ($diff < 86400) {
+            $hours = floor($diff / 3600);
+            return $hours . ' ' . ($hours === 1 ? (t('activity.hour_ago') ?? 'час назад') : (t('activity.hours_ago') ?? 'часов назад'));
+        }
+        if ($diff < 604800) {
+            $days = floor($diff / 86400);
+            return $days . ' ' . ($days === 1 ? (t('activity.day_ago') ?? 'день назад') : (t('activity.days_ago') ?? 'дней назад'));
+        }
+        return date('d.m.Y', $timestamp);
+    }
 }
 
 require_once 'includes/header.php';
@@ -57,28 +80,72 @@ require_once 'includes/header.php';
         <p><?= htmlspecialchars(t('activity.empty')) ?></p>
     </div>
 <?php else: ?>
-    <div class="community-grid">
+    <div class="activity-feed">
         <?php foreach ($activities as $act): ?>
-            <div class="user-card">
-                <div class="user-card-avatar">
-                    <?php if (!empty($act['avatar_path'])): ?>
-                        <img src="<?= htmlspecialchars($act['avatar_path']) ?>" alt="Avatar">
-                    <?php else: ?>
-                        <div class="no-avatar"><?= htmlspecialchars(strtoupper(substr($act['username'], 0, 1))) ?></div>
-                    <?php endif; ?>
-                </div>
-                <div class="user-card-info">
-                    <h3><?= htmlspecialchars($act['username']) ?></h3>
-                    <p style="font-size:0.9rem; color:#636e72;">
-                        <?php if ($act['type'] === 'add_item' && $act['title']): ?>
-                            <?= htmlspecialchars(t('activity.add_item')) ?>: <strong><?= htmlspecialchars($act['title']) ?></strong>
+            <div class="activity-card">
+                <a href="user_collection.php?id=<?= (int)$act['user_id'] ?>" class="activity-user-link">
+                    <div class="activity-avatar">
+                        <?php if (!empty($act['avatar_path'])): ?>
+                            <img src="<?= htmlspecialchars($act['avatar_path']) ?>" alt="<?= htmlspecialchars($act['username']) ?>">
                         <?php else: ?>
-                            <?= htmlspecialchars($act['type']) ?>
+                            <div class="no-avatar"><?= htmlspecialchars(strtoupper(substr($act['username'], 0, 1))) ?></div>
                         <?php endif; ?>
-                    </p>
-                    <span style="font-size:0.8rem; color:#b2bec3;">
-                        <?= htmlspecialchars($act['created_at']) ?>
-                    </span>
+                    </div>
+                </a>
+                
+                <div class="activity-content">
+                    <div class="activity-header">
+                        <a href="user_collection.php?id=<?= (int)$act['user_id'] ?>" class="activity-username">
+                            <strong><?= htmlspecialchars($act['username']) ?></strong>
+                        </a>
+                        <?php if ($act['type'] === 'add_item' && $act['title']): ?>
+                            <span class="activity-action">
+                                <?= htmlspecialchars(t('activity.add_item')) ?>
+                            </span>
+                        <?php endif; ?>
+                        <span class="activity-time"><?= htmlspecialchars(timeAgo($act['created_at'])) ?></span>
+                    </div>
+                    
+                    <?php if ($act['type'] === 'add_item' && $act['title']): ?>
+                        <div class="activity-media">
+                            <?php if (!empty($act['image_path'])): ?>
+                                <?php 
+                                $imageUrl = $act['image_path'];
+                                if (strpos($imageUrl, 'http') !== 0 && strpos($imageUrl, 'https') !== 0) {
+                                    $imageUrl = '/' . ltrim($imageUrl, '/');
+                                }
+                                ?>
+                                <a href="user_collection.php?id=<?= (int)$act['user_id'] ?>" class="activity-media-image">
+                                    <img src="<?= htmlspecialchars($imageUrl) ?>" alt="<?= htmlspecialchars($act['title']) ?>" onerror="this.style.display='none'">
+                                </a>
+                            <?php endif; ?>
+                            
+                            <div class="activity-media-info">
+                                <div class="activity-media-header">
+                                    <span class="activity-media-type">
+                                        <?= $act['type'] === 'movie' ? '🎬' : '📚' ?>
+                                        <?= $act['type'] === 'movie' ? htmlspecialchars(t('collection.movies')) : htmlspecialchars(t('collection.books')) ?>
+                                    </span>
+                                    <?php if (!empty($act['rating'])): ?>
+                                        <span class="activity-rating">⭐ <?= htmlspecialchars((string)$act['rating']) ?>/10</span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <h4 class="activity-media-title"><?= htmlspecialchars($act['title']) ?></h4>
+                                
+                                <?php if (!empty($act['author_director']) || !empty($act['release_year'])): ?>
+                                    <div class="activity-media-meta">
+                                        <?php if (!empty($act['author_director'])): ?>
+                                            <span><?= htmlspecialchars($act['author_director']) ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($act['release_year'])): ?>
+                                            <span class="activity-year">(<?= htmlspecialchars((string)$act['release_year']) ?>)</span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>
