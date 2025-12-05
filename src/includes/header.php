@@ -102,10 +102,12 @@ if ($myId) {
             <ul class="nav-links" id="navLinks">
                 <?php if ($myId): ?>
                     <li>
-                        <label class="theme-toggle-switch" title="Переключить тему">
-                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                            <span class="theme-slider"></span>
-                        </label>
+                        <div class="toggle-switch">
+                            <label>
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                     </li>
                     <!-- Лента активности -->
                     <li><a href="activity.php" class="<?= $currentPage === 'activity.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
@@ -117,8 +119,6 @@ if ($myId) {
                     <li><a href="releases_calendar.php" class="<?= $currentPage === 'releases_calendar.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
                     <!-- Афиша (видят все залогиненные) -->
                     <li><a href="afisha.php" class="<?= $currentPage === 'afisha.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
-                    <!-- Импорт -->
-                    <li><a href="import.php" class="<?= $currentPage === 'import.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.import')) ?></a></li>
 
                     <!-- Друзья (видят все) -->
                     <li><a href="friends.php" class="<?= $currentPage === 'friends.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.friends')) ?></a></li>
@@ -200,10 +200,12 @@ if ($myId) {
                         </form>
                     </li>
                     <li>
-                        <label class="theme-toggle-switch" title="Переключить тему">
-                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                            <span class="theme-slider"></span>
-                        </label>
+                        <div class="toggle-switch">
+                            <label>
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                     </li>
                     <li><a href="login.php" class="<?= $currentPage === 'login.php' ? 'nav-active' : '' ?>" style="font-weight: bold;"><?= htmlspecialchars(t('nav.login')) ?></a></li>
                     <li><a href="register.php" class="btn-register"><?= htmlspecialchars(t('nav.register')) ?></a></li>

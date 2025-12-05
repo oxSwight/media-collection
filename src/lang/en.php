@@ -213,5 +213,15 @@ return [
         'by_genres' => 'Top Genres',
         'items_count' => 'Count',
     ],
+    'calendar' => [
+        'title' => 'Release Calendar',
+    ],
+    'import' => [
+        'title' => 'Data Import',
+        'instructions' => 'Import Instructions',
+        'service' => 'Service',
+        'data' => 'Import Data (CSV format)',
+        'submit' => 'Import',
+    ],
 ];
 

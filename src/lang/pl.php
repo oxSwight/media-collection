@@ -213,5 +213,15 @@ return [
         'by_genres' => 'Top gatunki',
         'items_count' => 'Liczba',
     ],
+    'calendar' => [
+        'title' => 'Kalendarz premier',
+    ],
+    'import' => [
+        'title' => 'Import danych',
+        'instructions' => 'Instrukcje importu',
+        'service' => 'Serwis',
+        'data' => 'Dane do importu (format CSV)',
+        'submit' => 'Importuj',
+    ],
 ];
 
