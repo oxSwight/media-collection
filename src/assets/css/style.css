@@ -457,72 +457,116 @@ body {
     align-items: center;
 }
 
-/* Красивый переключатель темы с луной/солнцем */
+/* Красивый переключатель темы с луной/солнцем - НОВАЯ ВЕРСИЯ */
 .toggle-switch {
-    position: relative;
-    width: 80px;
-    height: 40px;
-    display: flex;
-    align-items: center;
+    position: relative !important;
+    width: 80px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+}
+
+.nav-links li .toggle-switch {
+    height: 36px !important;
+    width: 70px !important;
 }
 
 .toggle-switch label {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: var(--dark);
-    border-radius: 50px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: var(--dark) !important;
+    border-radius: 50px !important;
+    cursor: pointer !important;
+    transition: background-color 0.3s !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .toggle-switch input {
-    position: absolute;
-    display: none;
+    position: absolute !important;
+    display: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .toggle-switch .slider {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50px;
-    transition: 0.3s;
-    background-color: var(--dark);
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50px !important;
+    transition: 0.3s !important;
+    background-color: var(--dark) !important;
+    top: 0 !important;
+    left: 0 !important;
 }
 
 .toggle-switch input:checked ~ .slider {
-    background-color: var(--light);
+    background-color: var(--light) !important;
 }
 
 .toggle-switch .slider::before {
-    content: "";
-    position: absolute;
-    top: 5px;
-    left: 6px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    box-shadow: inset 11px -2px 0px 0px var(--light);
-    background-color: var(--dark);
-    transition: 0.3s;
+    content: "" !important;
+    position: absolute !important;
+    top: 5px !important;
+    left: 6px !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    box-shadow: inset 11px -2px 0px 0px var(--light) !important;
+    background-color: var(--dark) !important;
+    transition: 0.3s !important;
+}
+
+.nav-links li .toggle-switch .slider::before {
+    top: 4px !important;
+    left: 5px !important;
+    width: 28px !important;
+    height: 28px !important;
+    box-shadow: inset 10px -2px 0px 0px var(--light) !important;
 }
 
 .toggle-switch input:checked ~ .slider::before {
-    transform: translateX(38px);
-    background-color: var(--dark);
-    box-shadow: none;
+    transform: translateX(38px) !important;
+    background-color: var(--dark) !important;
+    box-shadow: none !important;
+}
+
+.nav-links li .toggle-switch input:checked ~ .slider::before {
+    transform: translateX(34px) !important;
 }
 
 .toggle-switch:hover label {
-    box-shadow: 0 0 8px rgba(108, 92, 231, 0.5);
+    box-shadow: 0 0 8px rgba(108, 92, 231, 0.5) !important;
 }
 
 .dark-theme .toggle-switch label {
-    background-color: var(--dark);
+    background-color: var(--dark) !important;
+}
+
+.dark-theme .toggle-switch .slider {
+    background-color: var(--dark) !important;
 }
 
 .dark-theme .toggle-switch input:checked ~ .slider {
-    background-color: var(--light);
+    background-color: var(--light) !important;
+}
+
+.dark-theme .toggle-switch .slider::before {
+    box-shadow: inset 11px -2px 0px 0px var(--light) !important;
+    background-color: var(--dark) !important;
+}
+
+.dark-theme .toggle-switch input:checked ~ .slider::before {
+    background-color: var(--dark) !important;
+    box-shadow: none !important;
+}
+
+.dark-theme .nav-links li .toggle-switch .slider::before {
+    box-shadow: inset 10px -2px 0px 0px var(--light) !important;
 }
 
 .lang-switcher {
