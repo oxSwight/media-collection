@@ -70,6 +70,7 @@ if ($tmdbData && is_array($tmdbData)) {
         'overview' => $tmdbData['overview'] ?? '',
         'poster_url' => $posterUrl,
         'release_date' => $tmdbData['release_date'] ?? null,
+        'vote_average' => !empty($tmdbData['vote_average']) ? (float)$tmdbData['vote_average'] : null,
     ];
 } elseif ($upcomingId > 0) {
     // Иначе берем фильм из локальной БД upcoming_movies
@@ -110,6 +111,15 @@ $params = [
     'image_url' => urlencode($movie['poster_url'] ?? ''),
     'review' => urlencode($movie['overview'] ?? ''),
 ];
+
+// Добавляем рейтинг TMDb, если он есть (будет использован как подсказка)
+if (!empty($movie['vote_average']) && is_numeric($movie['vote_average'])) {
+    $tmdbRating = round((float)$movie['vote_average'], 1);
+    // Округляем до целого числа для поля rating (1-10)
+    $suggestedRating = min(10, max(1, (int)round($tmdbRating)));
+    $params['tmdb_rating'] = $suggestedRating;
+    $params['tmdb_rating_full'] = $tmdbRating; // Полный рейтинг для отображения
+}
 
 $queryString = http_build_query($params);
 header('Location: add_item.php?' . $queryString);

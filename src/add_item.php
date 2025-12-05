@@ -17,6 +17,8 @@ $prefillAuthor = $fromAfisha ? urldecode($_GET['author'] ?? '') : '';
 $prefillYear = $fromAfisha ? ($_GET['year'] ?? '') : '';
 $prefillImageUrl = $fromAfisha ? urldecode($_GET['image_url'] ?? '') : '';
 $prefillReview = $fromAfisha ? urldecode($_GET['review'] ?? '') : '';
+$prefillTmdbRating = $fromAfisha ? ($_GET['tmdb_rating'] ?? '') : '';
+$prefillTmdbRatingFull = $fromAfisha ? ($_GET['tmdb_rating_full'] ?? '') : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_valid_csrf_token($_POST['_token'] ?? null);
@@ -207,8 +209,15 @@ require_once 'includes/header.php';
             </div>
 
             <div class="form-group">
-                <label><?= htmlspecialchars(t('item.rating')) ?></label>
-                    <input type="number" name="rating" min="1" max="10" value="<?= htmlspecialchars($_POST['rating'] ?? '5') ?>">
+                <label>
+                    <?= htmlspecialchars(t('item.rating')) ?>
+                    <?php if ($fromAfisha && !empty($prefillTmdbRatingFull)): ?>
+                        <span style="color: #636e72; font-size: 0.85rem; font-weight: normal;">
+                            (TMDb: <?= htmlspecialchars(number_format((float)$prefillTmdbRatingFull, 1)) ?>/10)
+                        </span>
+                    <?php endif; ?>
+                </label>
+                <input type="number" name="rating" min="1" max="10" value="<?= htmlspecialchars($_POST['rating'] ?? ($prefillTmdbRating ?: '5')) ?>">
             </div>
 
             <div class="form-group">

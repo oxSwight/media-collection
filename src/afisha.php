@@ -106,6 +106,11 @@ if ($useTmdbSearch) {
         
         // Преобразуем результаты TMDb в формат приложения
         foreach ($tmdbData['results'] as $tmdbMovie) {
+            // Пропускаем фильмы без описания или без постера
+            if (empty($tmdbMovie['overview']) || empty($tmdbMovie['poster_path'])) {
+                continue;
+            }
+            
             // Пропускаем фильмы, которые уже есть в коллекции
             $movieTitle = mb_strtolower($tmdbMovie['title'] ?? '');
             if (isset($seenTitles[$movieTitle])) {
@@ -892,14 +897,19 @@ require_once 'includes/header.php';
                      data-original-title="<?= htmlspecialchars($movie['original_title'] ?? '') ?>"
                      data-overview="<?= htmlspecialchars($movie['overview'] ?? '') ?>"
                      data-poster="<?= htmlspecialchars($movie['poster_url'] ?? '') ?>"
-                     data-release-date="<?= htmlspecialchars($movie['release_date'] ?? '') ?>">
+                     data-release-date="<?= htmlspecialchars($movie['release_date'] ?? '') ?>"
+                     data-vote-average="<?= htmlspecialchars($movie['vote_average'] ?? '') ?>">
                     <div class="media-image">
                         <?php if (!empty($movie['poster_url'])): ?>
                             <img src="<?= htmlspecialchars($movie['poster_url']) ?>" alt="Poster">
                         <?php else: ?>
                             <div class="no-image">No poster</div>
                         <?php endif; ?>
-                        <?php if (!empty($movie['release_date'])): ?>
+                        <?php if (!empty($movie['vote_average']) && is_numeric($movie['vote_average']) && (float)$movie['vote_average'] > 0): ?>
+                            <div class="media-rating" style="background: #2d3436; color: #fdcb6e; font-weight: bold;">
+                                ⭐ <?= htmlspecialchars(number_format((float)$movie['vote_average'], 1)) ?>
+                            </div>
+                        <?php elseif (!empty($movie['release_date'])): ?>
                             <div class="media-rating">
                                 <?= htmlspecialchars(date('Y-m-d', strtotime($movie['release_date']))) ?>
                             </div>
@@ -1016,6 +1026,7 @@ function openAfishaModal(card) {
     const overview = card.getAttribute('data-overview') || '';
     const poster   = card.getAttribute('data-poster') || '';
     const date     = card.getAttribute('data-release-date') || '';
+    const voteAvg  = card.getAttribute('data-vote-average') || '';
 
     document.getElementById('afishaTitle').textContent = title;
     const origElem = document.getElementById('afishaOriginal');
@@ -1027,8 +1038,28 @@ function openAfishaModal(card) {
     }
 
     const dateElem = document.getElementById('afishaDate');
-    if (date) {
-        dateElem.textContent = date;
+    const voteAvg  = card.getAttribute('data-vote-average') || '';
+    
+    if (voteAvg && parseFloat(voteAvg) > 0) {
+        // Показываем рейтинг TMDb, если он есть
+        dateElem.textContent = '⭐ ' + parseFloat(voteAvg).toFixed(1) + '/10';
+        if (date) {
+            const d = new Date(date);
+            if (!isNaN(d.getTime())) {
+                dateElem.textContent += ' • ' + d.toLocaleDateString();
+            } else {
+                dateElem.textContent += ' • ' + date;
+            }
+        }
+        dateElem.style.display = 'block';
+    } else if (date) {
+        // Если рейтинга нет, показываем только дату
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+            dateElem.textContent = d.toLocaleDateString();
+        } else {
+            dateElem.textContent = date;
+        }
         dateElem.style.display = 'block';
     } else {
         dateElem.style.display = 'none';
