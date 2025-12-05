@@ -72,11 +72,6 @@ if ($search !== '') {
     });
     $searchWords = array_values($searchWords);
     
-    // Если есть точная фраза, добавляем её как отдельное слово
-    if ($exactPhrase !== null) {
-        array_unshift($searchWords, $exactPhrase);
-    }
-    
     // Если нет слов после обработки, но есть год или фраза
     if (empty($searchWords) && $searchYear === null && $exactPhrase === null) {
         // Используем весь исходный запрос как одно слово
@@ -112,8 +107,33 @@ if (!empty($searchWords) || $exactPhrase !== null || $searchYear !== null) {
         $dataParams[':exact_overview'] = $phraseLike;
     }
     
-    // Поиск по каждому слову (AND логика - все слова должны быть найдены)
+    // Поиск по словам: если одно слово - точный поиск, если несколько - OR логика (хотя бы одно слово)
+    // Но также добавляем поиск по полной фразе для лучших результатов
     if (!empty($searchWords)) {
+        // Сначала добавляем поиск по полной фразе (если несколько слов)
+        if (count($searchWords) > 1) {
+            $fullPhrase = implode(' ', $searchWords);
+            $escapedPhrase = str_replace(['%', '_'], ['\\%', '\\_'], $fullPhrase);
+            $phraseLike = '%' . $escapedPhrase . '%';
+            
+            $phraseKey = ':phrase_' . $paramIndex++;
+            $searchParts[] = "(
+                title ILIKE {$phraseKey}_title 
+                OR original_title ILIKE {$phraseKey}_orig 
+                OR overview ILIKE {$phraseKey}_overview
+            )";
+            
+            $countParams[$phraseKey . '_title'] = $phraseLike;
+            $countParams[$phraseKey . '_orig'] = $phraseLike;
+            $countParams[$phraseKey . '_overview'] = $phraseLike;
+            
+            $dataParams[$phraseKey . '_title'] = $phraseLike;
+            $dataParams[$phraseKey . '_orig'] = $phraseLike;
+            $dataParams[$phraseKey . '_overview'] = $phraseLike;
+        }
+        
+        // Затем добавляем поиск по отдельным словам (OR логика - хотя бы одно слово должно быть найдено)
+        // Но для лучшей релевантности используем AND только если слов 2 или меньше
         $wordConditions = [];
         foreach ($searchWords as $word) {
             $escapedWord = str_replace(['%', '_'], ['\\%', '\\_'], $word);
@@ -139,9 +159,16 @@ if (!empty($searchWords) || $exactPhrase !== null || $searchYear !== null) {
             $dataParams[$wordKey . '_genres'] = $wordLike;
         }
         
-        // Все слова должны быть найдены (AND логика)
+        // Если слов 2 или меньше, используем AND (оба слова должны быть найдены)
+        // Если больше 2 слов, используем OR (хотя бы одно слово)
         if (!empty($wordConditions)) {
-            $searchParts[] = '(' . implode(' AND ', $wordConditions) . ')';
+            if (count($searchWords) <= 2) {
+                // Для коротких запросов (1-2 слова) используем AND для точности
+                $searchParts[] = '(' . implode(' AND ', $wordConditions) . ')';
+            } else {
+                // Для длинных запросов используем OR для широты поиска
+                $searchParts[] = '(' . implode(' OR ', $wordConditions) . ')';
+            }
         }
     }
     
