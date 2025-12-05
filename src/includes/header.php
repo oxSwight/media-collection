@@ -158,21 +158,21 @@ if ($myId) {
                     <li>
                         <div class="toggle-switch">
                             <label>
-                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                                <span class="slider"></span>
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" aria-label="<?= htmlspecialchars(t('nav.toggle_theme') ?? 'Переключить тему') ?>" aria-pressed="false">
+                                <span class="slider" role="switch" aria-label="<?= htmlspecialchars(t('nav.toggle_theme') ?? 'Переключить тему') ?>"></span>
                             </label>
                         </div>
                     </li>
                     <!-- Лента активности -->
-                    <li><a href="activity.php" class="<?= $currentPage === 'activity.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
+                    <li><a href="activity.php" class="<?= $currentPage === 'activity.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.activity')) ?>"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
                     <!-- Аналитика -->
-                    <li><a href="analytics.php" class="<?= $currentPage === 'analytics.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.analytics')) ?></a></li>
+                    <li><a href="analytics.php" class="<?= $currentPage === 'analytics.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.analytics')) ?>"><?= htmlspecialchars(t('nav.analytics')) ?></a></li>
                     <!-- Список желаний -->
-                    <li><a href="watchlist.php" class="<?= $currentPage === 'watchlist.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.watchlist')) ?></a></li>
+                    <li><a href="watchlist.php" class="<?= $currentPage === 'watchlist.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.watchlist')) ?>"><?= htmlspecialchars(t('nav.watchlist')) ?></a></li>
                     <!-- Календарь релизов -->
-                    <li><a href="releases_calendar.php" class="<?= $currentPage === 'releases_calendar.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
+                    <li><a href="releases_calendar.php" class="<?= $currentPage === 'releases_calendar.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.calendar')) ?>"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
                     <!-- Афиша (видят все залогиненные) -->
-                    <li><a href="afisha.php" class="<?= $currentPage === 'afisha.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
+                    <li><a href="afisha.php" class="<?= $currentPage === 'afisha.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.afisha')) ?>"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
 
                     <!-- Друзья (видят все) -->
                     <li><a href="friends.php" class="<?= $currentPage === 'friends.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.friends')) ?></a></li>
@@ -256,12 +256,12 @@ if ($myId) {
                     <li>
                         <div class="toggle-switch">
                             <label>
-                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" aria-label="Переключить тему">
-                                <span class="slider"></span>
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" aria-label="<?= htmlspecialchars(t('nav.toggle_theme') ?? 'Переключить тему') ?>" aria-pressed="false">
+                                <span class="slider" role="switch" aria-label="<?= htmlspecialchars(t('nav.toggle_theme') ?? 'Переключить тему') ?>"></span>
                             </label>
                         </div>
                     </li>
-                    <li><a href="login.php" class="<?= $currentPage === 'login.php' ? 'nav-active' : '' ?>" style="font-weight: bold;"><?= htmlspecialchars(t('nav.login')) ?></a></li>
+                    <li><a href="login.php" class="<?= $currentPage === 'login.php' ? 'nav-active' : '' ?>" style="font-weight: bold;" aria-label="<?= htmlspecialchars(t('nav.login')) ?>"><?= htmlspecialchars(t('nav.login')) ?></a></li>
                     <li><a href="register.php" class="btn-register"><?= htmlspecialchars(t('nav.register')) ?></a></li>
                 <?php endif; ?>
             </ul>

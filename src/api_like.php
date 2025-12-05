@@ -1,6 +1,7 @@
 <?php
 // src/api_like.php
 require_once 'includes/init.php';
+require_once __DIR__ . '/includes/rate_limit.php';
 
 header('Content-Type: application/json');
 
@@ -11,7 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Not logged in']);
+    exit;
+}
+
+// Rate limiting: 30 запросов в минуту для API
+$rateLimitError = enforceRateLimit(30, 60);
+if ($rateLimitError) {
+    echo json_encode($rateLimitError);
     exit;
 }
 
@@ -28,6 +37,15 @@ if ($mediaId <= 0) {
 }
 
 try {
+    // Проверяем, существует ли медиа-элемент и принадлежит ли он пользователю или его друзьям
+    $mediaCheck = $pdo->prepare("SELECT user_id FROM media_items WHERE id = ?");
+    $mediaCheck->execute([$mediaId]);
+    $mediaOwner = $mediaCheck->fetchColumn();
+    
+    if (!$mediaOwner) {
+        jsonError('Media item not found', 404);
+    }
+    
     $check = $pdo->prepare("SELECT 1 FROM likes WHERE user_id = ? AND media_id = ?");
     $check->execute([$userId, $mediaId]);
     $exists = $check->fetchColumn();
@@ -44,11 +62,17 @@ try {
 
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM likes WHERE media_id = ?");
     $countStmt->execute([$mediaId]);
-    $newCount = $countStmt->fetchColumn();
+    $newCount = (int)$countStmt->fetchColumn();
 
-    echo json_encode(['success' => true, 'action' => $action, 'count' => $newCount]);
+    jsonSuccess(['action' => $action, 'count' => $newCount]);
 
+} catch (PDOException $e) {
+    handleDatabaseError($e, 'Database error');
+    jsonError('Server error', 500);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Server error']);
+    logError('Unexpected error in api_like.php: ' . $e->getMessage(), [
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
+    jsonError('Server error', 500);
 }

@@ -21,21 +21,20 @@ $prefillReview = $fromAfisha ? urldecode($_GET['review'] ?? '') : '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_valid_csrf_token($_POST['_token'] ?? null);
 
-    $title = trim($_POST['title']);
+    // Используем helper функции для валидации
+    $title = sanitizeString($_POST['title'] ?? '', 150);
     $type = $_POST['type'] ?? 'movie';
-    $author = trim($_POST['author']);
-    $year = (int)($_POST['year'] ?? date('Y'));
-    $rating = (int)($_POST['rating'] ?? 5);
-    $review = trim($_POST['review']);
+    $author = sanitizeString($_POST['author'] ?? '', 100);
+    $year = validateYear($_POST['year'] ?? null);
+    $rating = validateRating($_POST['rating'] ?? 5) ?? 5; // По умолчанию 5 если не указано
+    $review = sanitizeString($_POST['review'] ?? '', 10000); // Увеличен лимит для рецензий
+    
     $allowedTypes = ['movie', 'book'];
     if (!in_array($type, $allowedTypes, true)) {
         $type = 'movie';
     }
-    $currentYear = (int)date('Y') + 1;
-    if ($year < 1900 || $year > $currentYear) {
-        $year = null;
-    }
-    if ($rating < 1 || $rating > 10) {
+    
+    if ($rating === null) {
         $error = t('item.rating_range');
     }
     

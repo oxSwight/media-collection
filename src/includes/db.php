@@ -18,6 +18,16 @@ try {
     ]);
 } catch (PDOException $e) {
     // В продакшене лучше логировать ошибку в файл, а пользователю показывать "Упс"
-    die("Nie można połączyć się z bazą danych: " . $e->getMessage());
+    $isProduction = getenv('APP_ENV') === 'production' || getenv('APP_ENV') === 'prod';
+    
+    if ($isProduction) {
+        // Логируем ошибку (если есть возможность)
+        error_log("Database connection error: " . $e->getMessage());
+        // Показываем пользователю общее сообщение
+        die("Nie można połączyć się z bazą danych. Spróbuj ponownie później.");
+    } else {
+        // В разработке показываем детали
+        die("Nie można połączyć się z bazą danych: " . htmlspecialchars($e->getMessage()));
+    }
 }
 ?>

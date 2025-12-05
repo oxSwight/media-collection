@@ -19,50 +19,19 @@ if (isset($_SESSION['user_id'])) {
         $perPage = $pagination['per_page'];
         $offset = $pagination['offset'];
         
-        // Сначала считаем общее количество
-        $countSql = "SELECT COUNT(*) FROM media_items WHERE user_id = ?";
-        $countParams = [$_SESSION['user_id']];
+        // Используем helper функцию вместо дублирования кода
+        $result = getMediaItemsWithFilters(
+            $pdo,
+            $_SESSION['user_id'],
+            $search,
+            $filterType,
+            $perPage,
+            $offset
+        );
         
-        if (!empty($search)) {
-            $countSql .= " AND (title ILIKE ? OR author_director ILIKE ?)";
-            $countParams[] = '%' . $search . '%';
-            $countParams[] = '%' . $search . '%';
-        }
-        
-        if (!empty($filterType) && in_array($filterType, ['movie', 'book'])) {
-            $countSql .= " AND type = ?";
-            $countParams[] = $filterType;
-        }
-        
-        $countStmt = $pdo->prepare($countSql);
-        $countStmt->execute($countParams);
-        $totalItems = (int)$countStmt->fetchColumn();
-        $totalPages = max(1, (int)ceil($totalItems / $perPage));
-        
-        // Теперь получаем данные с пагинацией
-        $sql = "SELECT * FROM media_items WHERE user_id = ?";
-        $params = [$_SESSION['user_id']];
-
-        // Если есть поисковый запрос
-        if (!empty($search)) {
-            $sql .= " AND (title ILIKE ? OR author_director ILIKE ?)";
-            $params[] = '%' . $search . '%';
-            $params[] = '%' . $search . '%';
-        }
-
-        // Если есть фильтр по типу
-        if (!empty($filterType) && in_array($filterType, ['movie', 'book'])) {
-            $sql .= " AND type = ?";
-            $params[] = $filterType;
-        }
-
-        $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        $params[] = $perPage;
-        $params[] = $offset;
-        
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $items = $stmt->fetchAll();
+        $items = $result['items'];
+        $totalItems = $result['total'];
+        $totalPages = $result['totalPages'];
         
         // Генерируем HTML пагинации
         if ($totalPages > 1) {
@@ -70,7 +39,8 @@ if (isset($_SESSION['user_id'])) {
         }
         
     } catch (PDOException $e) {
-        echo "<div class='error-msg'>Błąd: " . $e->getMessage() . "</div>";
+        error_log("Database error in index.php: " . $e->getMessage());
+        echo "<div class='error-msg'>" . htmlspecialchars(t('common.error') ?? 'Произошла ошибка. Пожалуйста, попробуйте позже.') . "</div>";
     }
 }
 require_once 'includes/header.php';
@@ -98,13 +68,13 @@ require_once 'includes/header.php';
 
         <!-- Панель поиска -->
         <div class="search-bar-container">
-            <form action="index.php" method="GET" class="search-form" id="searchForm">
-                <input type="text" name="q" id="searchInput" autocomplete="off" placeholder="<?= htmlspecialchars(t('collection.search_placeholder')) ?>" value="<?= htmlspecialchars($search) ?>" class="search-input">
+            <form action="index.php" method="GET" class="search-form" id="searchForm" role="search">
+                <input type="text" name="q" id="searchInput" autocomplete="off" placeholder="<?= htmlspecialchars(t('collection.search_placeholder')) ?>" value="<?= htmlspecialchars($search) ?>" class="search-input" aria-label="<?= htmlspecialchars(t('collection.search_placeholder')) ?>">
                 
-                <div class="filter-buttons">
-                    <button type="submit" name="type" value="" class="filter-btn <?= $filterType === '' ? 'active' : '' ?>"><?= htmlspecialchars(t('collection.all')) ?></button>
-                    <button type="submit" name="type" value="movie" class="filter-btn <?= $filterType === 'movie' ? 'active' : '' ?>"><?= htmlspecialchars(t('collection.movies')) ?></button>
-                    <button type="submit" name="type" value="book" class="filter-btn <?= $filterType === 'book' ? 'active' : '' ?>"><?= htmlspecialchars(t('collection.books')) ?></button>
+                <div class="filter-buttons" role="group" aria-label="<?= htmlspecialchars(t('collection.filter_by_type') ?? 'Фильтр по типу') ?>">
+                    <button type="submit" name="type" value="" class="filter-btn <?= $filterType === '' ? 'active' : '' ?>" aria-label="<?= htmlspecialchars(t('collection.all')) ?>" aria-pressed="<?= $filterType === '' ? 'true' : 'false' ?>"><?= htmlspecialchars(t('collection.all')) ?></button>
+                    <button type="submit" name="type" value="movie" class="filter-btn <?= $filterType === 'movie' ? 'active' : '' ?>" aria-label="<?= htmlspecialchars(t('collection.movies')) ?>" aria-pressed="<?= $filterType === 'movie' ? 'true' : 'false' ?>"><?= htmlspecialchars(t('collection.movies')) ?></button>
+                    <button type="submit" name="type" value="book" class="filter-btn <?= $filterType === 'book' ? 'active' : '' ?>" aria-label="<?= htmlspecialchars(t('collection.books')) ?>" aria-pressed="<?= $filterType === 'book' ? 'true' : 'false' ?>"><?= htmlspecialchars(t('collection.books')) ?></button>
                 </div>
             </form>
         </div>
@@ -163,13 +133,13 @@ require_once 'includes/header.php';
                                 <?php else: ?>
                                     <div class="no-image">Brak okładki</div>
                                 <?php endif; ?>
-                                <div class="media-rating"><?= htmlspecialchars((string)$item['rating']) ?>/10</div>
-                                <div class="media-actions">
-                                    <a href="edit_item.php?id=<?= $item['id'] ?>" class="btn-icon edit">✎</a>
-                                    <form action="delete_item.php" method="POST" style="display: inline;" onsubmit="return confirm('Usunąć?');">
+                                <div class="media-rating" aria-label="<?= htmlspecialchars(t('item.rating') ?? 'Рейтинг') ?>: <?= htmlspecialchars((string)$item['rating']) ?>/10"><?= htmlspecialchars((string)$item['rating']) ?>/10</div>
+                                <div class="media-actions" role="group" aria-label="<?= htmlspecialchars(t('item.actions') ?? 'Действия') ?>">
+                                    <a href="edit_item.php?id=<?= $item['id'] ?>" class="btn-icon edit" aria-label="<?= htmlspecialchars(t('item.edit') ?? 'Редактировать') ?>" title="<?= htmlspecialchars(t('item.edit') ?? 'Редактировать') ?>">✎</a>
+                                    <form action="delete_item.php" method="POST" style="display: inline;" onsubmit="return confirm('<?= htmlspecialchars(t('item.delete_confirm') ?? 'Удалить?') ?>');">
                                         <?= csrf_input(); ?>
                                         <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
-                                        <button type="submit" class="btn-icon delete" style="border: none; background: none; cursor: pointer;">✕</button>
+                                        <button type="submit" class="btn-icon delete" style="border: none; background: none; cursor: pointer;" aria-label="<?= htmlspecialchars(t('item.delete') ?? 'Удалить') ?>" title="<?= htmlspecialchars(t('item.delete') ?? 'Удалить') ?>">✕</button>
                                     </form>
                                 </div>
                             </div>
@@ -266,7 +236,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                 })
-                .catch(err => console.error('Ошибка поиска:', err));
+                .catch(err => {
+                    console.error('Ошибка поиска:', err);
+                    resultsArea.innerHTML = '<div class="error-msg" role="alert">' + (document.documentElement.lang === 'ru' ? 'Произошла ошибка при поиске. Пожалуйста, попробуйте еще раз.' : document.documentElement.lang === 'pl' ? 'Wystąpił błąd podczas wyszukiwania. Spróbuj ponownie.' : 'An error occurred during search. Please try again.') + '</div>';
+                });
         }, 300));
     }
 });

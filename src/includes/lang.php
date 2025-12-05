@@ -67,15 +67,31 @@ function detect_language(): string
     return $browserLang;
 }
 
-// Загружаем переводы
+// Загружаем переводы с кэшированием
 function load_translations(string $lang): array
 {
-    $file = __DIR__ . "/../lang/{$lang}.php";
-    if (file_exists($file)) {
-        return require $file;
+    // Проверяем кэш (TTL 24 часа для переводов)
+    $cacheKey = "translations_{$lang}";
+    $cached = cache_get($cacheKey, 86400);
+    
+    if ($cached !== null) {
+        return $cached;
     }
-    // Fallback на польский
-    return require __DIR__ . "/../lang/pl.php";
+    
+    $file = __DIR__ . "/../lang/{$lang}.php";
+    $translations = [];
+    
+    if (file_exists($file)) {
+        $translations = require $file;
+    } else {
+        // Fallback на польский
+        $translations = require __DIR__ . "/../lang/pl.php";
+    }
+    
+    // Сохраняем в кэш
+    cache_set($cacheKey, $translations, 86400);
+    
+    return $translations;
 }
 
 // Получаем текущий язык

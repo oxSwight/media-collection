@@ -8,24 +8,67 @@ function uploads_root(): string
 
 function handle_image_upload(array $file, string $subDir = '', int $maxBytes = 2_000_000): array
 {
+    // Проверка ошибок загрузки
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        return [null, 'Błąd przesyłania pliku.'];
+        $errorMessages = [
+            UPLOAD_ERR_INI_SIZE => 'Plik przekracza maksymalny rozmiar ustawiony w php.ini.',
+            UPLOAD_ERR_FORM_SIZE => 'Plik przekracza maksymalny rozmiar formularza.',
+            UPLOAD_ERR_PARTIAL => 'Plik został przesłany tylko częściowo.',
+            UPLOAD_ERR_NO_FILE => 'Nie wybrano pliku.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Brak katalogu tymczasowego.',
+            UPLOAD_ERR_CANT_WRITE => 'Nie można zapisać pliku na dysku.',
+            UPLOAD_ERR_EXTENSION => 'Przesyłanie zostało zatrzymane przez rozszerzenie PHP.',
+        ];
+        $errorMsg = $errorMessages[$file['error']] ?? 'Błąd przesyłania pliku.';
+        return [null, $errorMsg];
     }
 
+    // Проверка размера файла
     if ($file['size'] > $maxBytes) {
-        return [null, 'Plik jest zbyt duży (max 2MB).'];
+        $maxSizeMB = round($maxBytes / 1024 / 1024, 1);
+        return [null, "Plik jest zbyt duży (max {$maxSizeMB}MB)."];
     }
 
+    // Проверка минимального размера (защита от пустых файлов)
+    if ($file['size'] < 100) {
+        return [null, 'Plik jest zbyt mały lub uszkodzony.'];
+    }
+
+    // Проверка имени файла на безопасность
+    $filename = basename($file['name']);
+    if (preg_match('/[^a-zA-Z0-9._-]/', $filename)) {
+        return [null, 'Nieprawidłowa nazwa pliku.'];
+    }
+
+    // Разрешенные MIME типы
     $allowed = [
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
         'image/webp' => 'webp',
+        'image/gif'  => 'gif', // Добавляем поддержку GIF
     ];
 
+    // Проверка MIME типа через finfo (более надежно)
     $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime  = $finfo->file($file['tmp_name']) ?: '';
-    if (!isset($allowed[$mime])) {
-        return [null, 'Dozwolone są tylko obrazy JPG, PNG lub WEBP.'];
+    $mime = $finfo->file($file['tmp_name']) ?: '';
+    
+    // Дополнительная проверка через getimagesize для безопасности
+    $imageInfo = @getimagesize($file['tmp_name']);
+    if ($imageInfo === false) {
+        return [null, 'Plik nie jest prawidłowym obrazem.'];
+    }
+    
+    // Проверяем, что MIME тип соответствует реальному типу изображения
+    $detectedMime = $imageInfo['mime'] ?? '';
+    if (!isset($allowed[$mime]) || ($detectedMime && $mime !== $detectedMime)) {
+        return [null, 'Dozwolone są tylko obrazy JPG, PNG, WEBP lub GIF.'];
+    }
+    
+    // Проверка расширения файла
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $expectedExt = $allowed[$mime] ?? '';
+    if ($ext !== $expectedExt && !in_array($ext, ['jpg', 'jpeg'], true)) {
+        return [null, 'Rozszerzenie pliku nie odpowiada jego typowi.'];
     }
 
     $root = uploads_root();

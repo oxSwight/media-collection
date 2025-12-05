@@ -246,40 +246,73 @@ require_once 'includes/header.php';
 
 <!-- СКРИПТЫ -->
 <script>
-// Лайки
+// Лайки с улучшенной обработкой ошибок и loading state
 async function toggleLike(e, mediaId) {
     e.stopPropagation(); // Чтобы не открывалось окно при клике на лайк
     const btn = e.currentTarget;
     const countSpan = btn.querySelector('.like-count');
     const icon = btn.querySelector('.like-icon');
+    
+    // Блокируем кнопку во время запроса
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'wait';
 
     // Анимация
     icon.classList.add('like-anim');
     setTimeout(() => icon.classList.remove('like-anim'), 300);
 
-    // Запрос
-    const headers = { 'Content-Type': 'application/json' };
-    if (window.csrfToken) {
-        headers['X-CSRF-TOKEN'] = window.csrfToken;
-    }
-
-    const res = await fetch('api_like.php', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ id: mediaId })
-    });
-    
-    const data = await res.json();
-    
-    if (data.success) {
-        if (data.action === 'liked') {
-            btn.classList.add('liked');
-        } else {
-            btn.classList.remove('liked');
+    try {
+        // Запрос
+        const headers = { 'Content-Type': 'application/json' };
+        if (window.csrfToken) {
+            headers['X-CSRF-TOKEN'] = window.csrfToken;
         }
-        countSpan.textContent = data.count;
-    } else {
-        alert('Błąd: ' + (data.error || 'Nieznany błąd'));
+
+        const res = await fetch('api_like.php', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ id: mediaId })
+        });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            if (data.action === 'liked') {
+                btn.classList.add('liked');
+            } else {
+                btn.classList.remove('liked');
+            }
+            countSpan.textContent = data.count;
+        } else {
+            const errorMsg = data.error || 'Nieznany błąd';
+            const lang = document.documentElement.lang;
+            const messages = {
+                'ru': 'Ошибка: ' + errorMsg,
+                'pl': 'Błąd: ' + errorMsg,
+                'en': 'Error: ' + errorMsg
+            };
+            alert(messages[lang] || messages['en']);
+        }
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        const lang = document.documentElement.lang;
+        const messages = {
+            'ru': 'Произошла ошибка. Пожалуйста, попробуйте еще раз.',
+            'pl': 'Wystąpił błąd. Spróbuj ponownie.',
+            'en': 'An error occurred. Please try again.'
+        };
+        alert(messages[lang] || messages['en']);
+    } finally {
+        // Разблокируем кнопку
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
     }
 }
 

@@ -26,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Проверка пароля
         if ($user && password_verify($password, $user['password'])) {
+            // Регенерируем ID сессии для безопасности
+            session_regenerate_id(true);
+            
             // Успешный вход
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
