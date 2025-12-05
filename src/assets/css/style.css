@@ -300,7 +300,7 @@
 /* Стили для темной темы - карточки медиа */
 .dark-theme .media-rating {
     background: rgba(255, 255, 255, 0.95) !important;
-    color: var(--dark) !important;
+    color: #2d3436 !important;
     font-weight: 800 !important;
 }
 

@@ -110,9 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (strpos($mime, 'image/') === 0) {
                             $imagePath = 'uploads/' . $filename;
                         } else {
-                            // Если это не изображение, удаляем файл и используем URL
+                            // Если это не изображение, удаляем файл и пробуем через handle_image_from_url
                             @unlink($filePath);
-                            $imagePath = $imageUrl;
+                            require_once __DIR__ . '/includes/upload.php';
+                            $result = handle_image_from_url($imageUrl);
+                            $imagePath = $result ?: null;
                         }
                     } else {
                         // Если не удалось сохранить локально, пробуем через handle_image_from_url

@@ -165,8 +165,23 @@ require_once 'includes/header.php';
                  data-rating="<?= htmlspecialchars((string)$item['rating']) ?>">
 
                 <div class="media-image">
-                    <?php if (!empty($item['image_path'])): ?>
-                        <img src="<?= htmlspecialchars($item['image_path']) ?>" alt="Okładka">
+                    <?php 
+                    $imagePath = $item['image_path'] ?? '';
+                    // Проверяем, существует ли файл, если это локальный путь
+                    $imageExists = false;
+                    if (!empty($imagePath)) {
+                        if (strpos($imagePath, 'http') === 0) {
+                            // Это внешний URL - считаем, что он существует
+                            $imageExists = true;
+                        } else {
+                            // Это локальный путь - проверяем существование файла
+                            $fullPath = __DIR__ . '/' . ltrim($imagePath, '/');
+                            $imageExists = file_exists($fullPath);
+                        }
+                    }
+                    ?>
+                    <?php if ($imageExists): ?>
+                        <img src="<?= htmlspecialchars($imagePath) ?>" alt="Okładka" onerror="this.parentElement.innerHTML='<div class=\'no-image\'>' + '<?= htmlspecialchars(t('item.image')) ?>' + '</div>'">
                     <?php else: ?>
                         <div class="no-image"><?= htmlspecialchars(t('item.image')) ?></div>
                     <?php endif; ?>
