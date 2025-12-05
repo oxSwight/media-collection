@@ -34,8 +34,13 @@ foreach ($stmtSeen->fetchAll(PDO::FETCH_COLUMN) as $t) {
 }
 
 // 2. Строим базовый запрос по афише (ТОЛЬКО именованные параметры, без смешивания)
+// Фильтруем только фильмы от 2000 года
 $countSql = "SELECT COUNT(*) FROM upcoming_movies WHERE 1=1";
 $dataSql  = "SELECT * FROM upcoming_movies WHERE 1=1";
+
+// Фильтр по году - только от 2000 года
+$countSql .= " AND (release_date IS NULL OR EXTRACT(YEAR FROM release_date) >= 2000)";
+$dataSql  .= " AND (release_date IS NULL OR EXTRACT(YEAR FROM release_date) >= 2000)";
 
 $countParams = [':uid' => $myId];
 $dataParams  = [':uid' => $myId];
@@ -84,16 +89,10 @@ $countStmt->execute($countParams);
 $totalItems = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalItems / $perPage));
 
-// Получаем сами фильмы
-if ($mode === 'all') {
-    // Для "Все фильмы" - рандомный порядок с seed для стабильности при пагинации
-    // Используем MD5 hash от id и seed для псевдослучайной сортировки
-    $dataSql .= " ORDER BY MD5(id::text || :seed) LIMIT :limit OFFSET :offset";
-    $dataParams[':seed'] = (string)$randomSeed;
-} else {
-    // Для "Рекомендованных" - сначала новые релизы
-    $dataSql .= " ORDER BY release_date DESC NULLS LAST, popularity DESC NULLS LAST LIMIT :limit OFFSET :offset";
-}
+// Получаем сами фильмы - ВСЕГДА рандомный порядок с seed для стабильности при пагинации
+// Используем MD5 hash от id и seed для псевдослучайной сортировки
+$dataSql .= " ORDER BY MD5(id::text || :seed) LIMIT :limit OFFSET :offset";
+$dataParams[':seed'] = (string)$randomSeed;
 $dataParams[':limit']  = $perPage;
 $dataParams[':offset'] = $offset;
 

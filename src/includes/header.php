@@ -7,6 +7,9 @@ $avatarUrl = null;
 $myId = $_SESSION['user_id'] ?? 0;
 $isAdmin = !empty($_SESSION['is_admin']);
 
+// Определяем текущую страницу для активного состояния навигации
+$currentPage = basename($_SERVER['PHP_SELF']);
+
 if ($myId) {
     $stmt = $pdo->prepare("SELECT avatar_path FROM users WHERE id = ?");
     $stmt->execute([$myId]);
@@ -37,10 +40,25 @@ if ($myId) {
         function toggleTheme() {
             const root = document.documentElement;
             const isDark = root.classList.toggle('dark-theme');
+            const checkbox = document.getElementById('theme-toggle');
+            if (checkbox) {
+                checkbox.checked = isDark;
+            }
             try {
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
             } catch (e) {}
         }
+        
+        // Устанавливаем начальное состояние переключателя темы
+        (function() {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                const checkbox = document.getElementById('theme-toggle');
+                if (checkbox) {
+                    checkbox.checked = savedTheme === 'dark';
+                }
+            } catch (e) {}
+        })();
         
         window.csrfToken = <?= json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
         
@@ -72,7 +90,7 @@ if ($myId) {
     <nav class="navbar">
         <div class="container">
             <div class="navbar-header">
-                <a href="index.php" class="logo">
+                <a href="index.php" class="logo <?= $currentPage === 'index.php' ? 'nav-active' : '' ?>">
                     <span style="font-size: 1.8rem;">🍿</span> <?= htmlspecialchars(t('site.title')) ?>
                 </a>
                 <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">
@@ -84,37 +102,38 @@ if ($myId) {
             <ul class="nav-links" id="navLinks">
                 <?php if ($myId): ?>
                     <li>
-                        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему">
-                            🌓
-                        </button>
+                        <label class="theme-toggle-switch" title="Переключить тему">
+                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                            <span class="theme-slider"></span>
+                        </label>
                     </li>
                     <!-- Лента активности -->
-                    <li><a href="activity.php"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
+                    <li><a href="activity.php" class="<?= $currentPage === 'activity.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
                     <!-- Аналитика -->
-                    <li><a href="analytics.php"><?= htmlspecialchars(t('nav.analytics')) ?></a></li>
+                    <li><a href="analytics.php" class="<?= $currentPage === 'analytics.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.analytics')) ?></a></li>
                     <!-- Список желаний -->
-                    <li><a href="watchlist.php"><?= htmlspecialchars(t('nav.watchlist')) ?></a></li>
+                    <li><a href="watchlist.php" class="<?= $currentPage === 'watchlist.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.watchlist')) ?></a></li>
                     <!-- Календарь релизов -->
-                    <li><a href="releases_calendar.php"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
+                    <li><a href="releases_calendar.php" class="<?= $currentPage === 'releases_calendar.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
                     <!-- Афиша (видят все залогиненные) -->
-                    <li><a href="afisha.php"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
+                    <li><a href="afisha.php" class="<?= $currentPage === 'afisha.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
                     <!-- Импорт -->
-                    <li><a href="import.php"><?= htmlspecialchars(t('nav.import')) ?></a></li>
+                    <li><a href="import.php" class="<?= $currentPage === 'import.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.import')) ?></a></li>
 
                     <!-- Друзья (видят все) -->
-                    <li><a href="friends.php"><?= htmlspecialchars(t('nav.friends')) ?></a></li>
+                    <li><a href="friends.php" class="<?= $currentPage === 'friends.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.friends')) ?></a></li>
                     
                     <!-- Сообщество (ВИДИТ ТОЛЬКО АДМИН) -->
                     <?php if ($isAdmin): ?>
-                        <li><a href="community.php"><?= htmlspecialchars(t('nav.community')) ?></a></li>
+                        <li><a href="community.php" class="<?= $currentPage === 'community.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.community')) ?></a></li>
                     <?php endif; ?>
 
                     <!-- Кнопка добавления -->
-                    <li><a href="add_item.php"><?= htmlspecialchars(t('nav.add')) ?></a></li>
+                    <li><a href="add_item.php" class="<?= $currentPage === 'add_item.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.add')) ?></a></li>
                     
                     <!-- Кнопка Админа (только для админа) -->
                     <?php if ($isAdmin): ?>
-                        <li><a href="admin.php" style="color: #e17055;"><?= htmlspecialchars(t('nav.admin')) ?></a></li>
+                        <li><a href="admin.php" class="<?= $currentPage === 'admin.php' ? 'nav-active' : '' ?>" style="color: #e17055;"><?= htmlspecialchars(t('nav.admin')) ?></a></li>
                     <?php endif; ?>
                     
                     <!-- Переключатель языка -->
@@ -138,7 +157,7 @@ if ($myId) {
                     
                     <!-- Профиль пользователя -->
                     <li>
-                        <a href="profile.php" style="display: flex; align-items: center;">
+                        <a href="profile.php" class="<?= $currentPage === 'profile.php' ? 'nav-active' : '' ?>" style="display: flex; align-items: center;">
                             <?php if ($avatarUrl): ?>
                                 <img src="<?= htmlspecialchars($avatarUrl) ?>" class="nav-avatar" alt="Avatar">
                             <?php else: ?>
@@ -181,11 +200,12 @@ if ($myId) {
                         </form>
                     </li>
                     <li>
-                        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему">
-                            🌓
-                        </button>
+                        <label class="theme-toggle-switch" title="Переключить тему">
+                            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                            <span class="theme-slider"></span>
+                        </label>
                     </li>
-                    <li><a href="login.php" style="font-weight: bold;"><?= htmlspecialchars(t('nav.login')) ?></a></li>
+                    <li><a href="login.php" class="<?= $currentPage === 'login.php' ? 'nav-active' : '' ?>" style="font-weight: bold;"><?= htmlspecialchars(t('nav.login')) ?></a></li>
                     <li><a href="register.php" class="btn-register"><?= htmlspecialchars(t('nav.register')) ?></a></li>
                 <?php endif; ?>
             </ul>
