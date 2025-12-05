@@ -2007,9 +2007,47 @@ a[href="add_item.php"]:hover {
     text-decoration: underline;
 }
 
-.activity-action {
-    color: var(--text);
+.activity-action-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.activity-action-add {
+    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+}
+
+.activity-action-add:hover {
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.4);
+    transform: translateY(-1px);
+}
+
+.activity-action-default {
+    background: #dfe6e9;
+    color: #636e72;
+}
+
+.dark-theme .activity-action-default {
+    background: rgba(162, 155, 254, 0.2);
+    color: #a29bfe;
+}
+
+.activity-action-icon {
     font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.activity-action-text {
+    white-space: nowrap;
 }
 
 .activity-time {
@@ -2024,7 +2062,80 @@ a[href="add_item.php"]:hover {
     background: #f8f9fa;
     border-radius: 10px;
     padding: 12px;
-    border-left: 3px solid var(--primary);
+    border-left: 4px solid #00b894;
+    position: relative;
+    overflow: hidden;
+}
+
+.activity-media::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #00b894 0%, #00cec9 100%);
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        height: 0;
+    }
+    to {
+        height: 100%;
+    }
+}
+
+.activity-media-action-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.activity-action-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(0, 184, 148, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.activity-action-icon-large {
+    position: relative;
+    font-size: 1.2rem;
+    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
+    color: white;
+    font-weight: bold;
 }
 
 .dark-theme .activity-media {
@@ -2119,6 +2230,20 @@ a[href="add_item.php"]:hover {
     
     .activity-media {
         flex-direction: column;
+        padding: 15px;
+    }
+    
+    .activity-media-action-indicator {
+        top: 15px;
+        right: 15px;
+        width: 35px;
+        height: 35px;
+    }
+    
+    .activity-action-icon-large {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
     }
     
     .activity-media-image {
@@ -2129,9 +2254,15 @@ a[href="add_item.php"]:hover {
     .activity-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 10px;
     }
     
     .activity-time {
         margin-left: 0;
+    }
+    
+    .activity-action-badge {
+        font-size: 0.8rem;
+        padding: 5px 10px;
     }
 }
