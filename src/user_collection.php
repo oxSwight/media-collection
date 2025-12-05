@@ -170,13 +170,26 @@ require_once 'includes/header.php';
                     // Проверяем, существует ли файл, если это локальный путь
                     $imageExists = false;
                     if (!empty($imagePath)) {
-                        if (strpos($imagePath, 'http') === 0) {
+                        if (strpos($imagePath, 'http') === 0 || strpos($imagePath, 'https') === 0) {
                             // Это внешний URL - считаем, что он существует
                             $imageExists = true;
                         } else {
                             // Это локальный путь - проверяем существование файла
-                            $fullPath = __DIR__ . '/' . ltrim($imagePath, '/');
+                            // Путь в БД хранится как 'uploads/filename.jpg' относительно корня проекта
+                            // __DIR__ указывает на src/, поэтому используем dirname(__DIR__) для корня проекта
+                            $projectRoot = dirname(__DIR__);
+                            $fullPath = $projectRoot . '/' . ltrim($imagePath, '/');
                             $imageExists = file_exists($fullPath);
+                            
+                            // Если файл не найден по относительному пути, пробуем относительно src/
+                            if (!$imageExists) {
+                                $altPath = __DIR__ . '/' . ltrim($imagePath, '/');
+                                $imageExists = file_exists($altPath);
+                                if ($imageExists) {
+                                    // Обновляем путь для отображения
+                                    $imagePath = $imagePath;
+                                }
+                            }
                         }
                     }
                     ?>
