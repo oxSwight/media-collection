@@ -61,12 +61,12 @@ require_once 'includes/header.php';
 <div class="dashboard">
     <div class="header-actions">
         <h2><?= htmlspecialchars(t('calendar.title') ?? 'Календарь релизов') ?></h2>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="releases_calendar.php?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn-register" style="text-decoration: none;">←</a>
-            <span style="font-weight: bold; min-width: 200px; text-align: center;">
+        <div class="calendar-nav" style="display: flex; gap: 10px; align-items: center;">
+            <a href="releases_calendar.php?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn-register calendar-nav-btn" style="text-decoration: none;">←</a>
+            <span class="calendar-month-year" style="font-weight: bold; min-width: 200px; text-align: center;">
                 <?= htmlspecialchars($monthNames[$month] ?? $month) ?> <?= $year ?>
             </span>
-            <a href="releases_calendar.php?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn-register" style="text-decoration: none;">→</a>
+            <a href="releases_calendar.php?month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn-register calendar-nav-btn" style="text-decoration: none;">→</a>
         </div>
     </div>
 
@@ -77,8 +77,8 @@ require_once 'includes/header.php';
     <?php else: ?>
         <div style="display: grid; gap: 20px;">
             <?php foreach ($releasesByDate as $date => $dateReleases): ?>
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);">
-                    <h3 style="color: var(--primary); margin-bottom: 15px;">
+                <div class="calendar-date-section">
+                    <h3 class="calendar-date-title">
                         <?= htmlspecialchars(date('d.m.Y', strtotime($date))) ?>
                     </h3>
                     <div class="media-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">

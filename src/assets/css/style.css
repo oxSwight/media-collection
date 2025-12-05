@@ -260,6 +260,92 @@
     color: white !important;
 }
 
+/* Стили для аналитики и календаря */
+.analytics-card {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+}
+
+.analytics-card-title {
+    margin: 0 0 10px 0;
+    color: var(--primary);
+}
+
+.analytics-card-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--text);
+}
+
+.analytics-section {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    margin-bottom: 30px;
+}
+
+.analytics-section-title {
+    margin: 0 0 20px 0;
+    color: var(--primary);
+}
+
+.calendar-nav-btn {
+    color: var(--text) !important;
+}
+
+.calendar-month-year {
+    color: var(--text) !important;
+}
+
+.calendar-date-section {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+}
+
+.calendar-date-title {
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+/* Стили для темной темы - аналитика и календарь */
+.dark-theme .analytics-card,
+.dark-theme .analytics-section,
+.dark-theme .calendar-date-section {
+    background-color: var(--white) !important;
+    color: var(--text) !important;
+}
+
+.dark-theme .analytics-card-title,
+.dark-theme .analytics-section-title,
+.dark-theme .calendar-date-title {
+    color: var(--primary) !important;
+}
+
+.dark-theme .analytics-card-value {
+    color: var(--text) !important;
+}
+
+.dark-theme .dashboard h2 {
+    color: var(--text) !important;
+}
+
+.dark-theme .header-actions h2 {
+    color: var(--text) !important;
+}
+
+.dark-theme .calendar-month-year {
+    color: var(--text) !important;
+}
+
+.dark-theme .calendar-nav-btn {
+    color: var(--text) !important;
+}
+
 /* Стили для темной темы - пагинация */
 .dark-theme .pagination-btn {
     background: var(--primary) !important;
