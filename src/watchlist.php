@@ -117,10 +117,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_watchlist'])) 
                     created_at = CURRENT_TIMESTAMP
             ");
             $stmt->execute([$userId, $upcomingId, $title, $notes]);
-            header('Location: watchlist.php?msg=added');
-            exit;
+            
+            // Проверяем, является ли запрос AJAX-запросом
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                      strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            
+            if ($isAjax) {
+                // Возвращаем JSON для AJAX-запроса
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => t('watchlist.added') ?? 'Добавлено в список желаний'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } else {
+                // Обычный редирект для не-AJAX запросов
+                header('Location: watchlist.php?msg=added');
+                exit;
+            }
         } catch (PDOException $e) {
             $error = 'Ошибка при добавлении в список желаний';
+            
+            // Проверяем, является ли запрос AJAX-запросом
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                      strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $error
+                ]);
+                exit;
+            }
         }
     }
 }

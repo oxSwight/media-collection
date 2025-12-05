@@ -179,4 +179,56 @@ require_once 'includes/header.php';
 
 </div>
 
+<script>
+// Обновление badge после принятия/отклонения запросов
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('form[method="POST"]');
+    forms.forEach(form => {
+        const acceptBtn = form.querySelector('button[value="accept_friend"]');
+        const rejectBtn = form.querySelector('button[value="reject_friend"]');
+        
+        if (acceptBtn || rejectBtn) {
+            form.addEventListener('submit', function() {
+                // После отправки формы обновляем badge через небольшую задержку
+                setTimeout(function() {
+                    updateFriendsBadge();
+                }, 500);
+            });
+        }
+    });
+});
+
+// Функция для обновления badge через AJAX
+function updateFriendsBadge() {
+    fetch('api_friends_badge.php')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('friends-badge');
+            if (data.count > 0) {
+                if (badge) {
+                    badge.textContent = data.count;
+                } else {
+                    // Создаем badge, если его нет
+                    const friendsLink = document.querySelector('a[href="friends.php"]');
+                    if (friendsLink) {
+                        const newBadge = document.createElement('span');
+                        newBadge.id = 'friends-badge';
+                        newBadge.className = 'nav-badge';
+                        newBadge.textContent = data.count;
+                        friendsLink.appendChild(newBadge);
+                    }
+                }
+            } else {
+                // Удаляем badge, если запросов нет
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating friends badge:', error);
+        });
+}
+</script>
+
 <?php require_once 'includes/footer.php'; ?>

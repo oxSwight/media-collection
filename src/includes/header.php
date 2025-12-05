@@ -14,6 +14,17 @@ if ($myId) {
     $stmt = $pdo->prepare("SELECT avatar_path FROM users WHERE id = ?");
     $stmt->execute([$myId]);
     $avatarUrl = $stmt->fetchColumn();
+    
+    // Подсчитываем входящие запросы в друзья
+    $pendingRequestsStmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM friendships 
+        WHERE receiver_id = ? AND status = 'pending'
+    ");
+    $pendingRequestsStmt->execute([$myId]);
+    $pendingRequestsCount = (int)$pendingRequestsStmt->fetchColumn();
+} else {
+    $pendingRequestsCount = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -175,7 +186,14 @@ if ($myId) {
                     <li><a href="afisha.php" class="<?= $currentPage === 'afisha.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.afisha')) ?>"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
 
                     <!-- Друзья (видят все) -->
-                    <li><a href="friends.php" class="<?= $currentPage === 'friends.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.friends')) ?></a></li>
+                    <li>
+                        <a href="friends.php" class="<?= $currentPage === 'friends.php' ? 'nav-active' : '' ?>" style="position: relative;">
+                            <?= htmlspecialchars(t('nav.friends')) ?>
+                            <?php if ($pendingRequestsCount > 0): ?>
+                                <span class="nav-badge" id="friends-badge"><?= $pendingRequestsCount ?></span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
                     
                     <!-- Сообщество (ВИДИТ ТОЛЬКО АДМИН) -->
                     <?php if ($isAdmin): ?>

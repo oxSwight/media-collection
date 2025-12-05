@@ -942,7 +942,7 @@ require_once 'includes/header.php';
                                     <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
                                 </button>
                             </form>
-                            <form method="POST" action="watchlist.php" onsubmit="event.stopPropagation();">
+                            <form method="POST" action="watchlist.php" onsubmit="return addToWatchlist(event, this);">
                                 <?= csrf_input(); ?>
                                 <input type="hidden" name="add_to_watchlist" value="1">
                                 <?php if ($useTmdbSearch && !empty($movie['external_id'])): ?>
@@ -1097,6 +1097,97 @@ function closeAfishaModal(event) {
 function closeAfishaModalDirect() {
     document.getElementById('afishaModal').classList.remove('open');
     document.body.style.overflow = 'auto';
+}
+
+// Функция для добавления в список желаний через AJAX
+async function addToWatchlist(event, form) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = form.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    
+    // Блокируем кнопку
+    button.disabled = true;
+    button.style.opacity = '0.6';
+    button.style.cursor = 'wait';
+    
+    try {
+        // Собираем данные формы
+        const formData = new FormData(form);
+        
+        // Добавляем заголовок для AJAX-запроса
+        const response = await fetch('watchlist.php', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Показываем уведомление
+            showToast(data.message || 'Добавлено в список желаний');
+        } else {
+            showToast(data.error || 'Ошибка при добавлении', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding to watchlist:', error);
+        showToast('Ошибка при добавлении в список желаний', 'error');
+    } finally {
+        // Разблокируем кнопку
+        button.disabled = false;
+        button.style.opacity = '1';
+        button.style.cursor = 'pointer';
+    }
+    
+    return false;
+}
+
+// Функция для показа уведомления
+function showToast(message, type = 'success') {
+    // Удаляем существующее уведомление, если есть
+    const existingToast = document.getElementById('watchlist-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Создаем новое уведомление
+    const toast = document.createElement('div');
+    toast.id = 'watchlist-toast';
+    toast.className = 'toast-notification';
+    toast.textContent = (type === 'success' ? '✅ ' : '❌ ') + message;
+    if (type === 'error') {
+        toast.style.backgroundColor = '#ff7675';
+        toast.style.borderLeft = '4px solid #e74c3c';
+    }
+    
+    // Начальное состояние (скрыто)
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    
+    // Добавляем в body
+    document.body.appendChild(toast);
+    
+    // Показываем с анимацией
+    requestAnimationFrame(() => {
+        toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    });
+    
+    // Скрываем через 4 секунды
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 500);
+    }, 4000);
 }
 </script>
 
