@@ -164,7 +164,7 @@ return [
     'afisha' => [
         'title' => 'Afisza filmowa',
         'description' => 'Przeglądaj filmy, których jeszcze nie masz w swojej kolekcji. Rekomendacje opierają się na Twoich gustach (gatunki), jeśli to możliwe.',
-        'search_placeholder' => 'Szukaj po tytule...',
+        'search_placeholder' => 'Szukaj po tytule... (np. "Marvel" lub kilka słów)',
         'mode_recommended' => 'Polecane dla Ciebie',
         'mode_all' => 'Wszystkie filmy',
         'filter_btn' => 'Szukaj',

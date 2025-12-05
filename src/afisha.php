@@ -45,28 +45,127 @@ $dataSql  .= " AND (release_date IS NULL OR EXTRACT(YEAR FROM release_date) >= 2
 $countParams = [':uid' => $myId];
 $dataParams  = [':uid' => $myId];
 
-// Поиск по названию и описанию
+// Улучшенный поиск с токенизацией и приоритетами
+$searchYear = null;
+$searchWords = [];
+$exactPhrase = null;
+
 if ($search !== '') {
-    $countSql .= " AND (title ILIKE :q_title OR original_title ILIKE :q_orig OR overview ILIKE :q_overview)";
-    $dataSql  .= " AND (title ILIKE :q_title OR original_title ILIKE :q_orig OR overview ILIKE :q_overview)";
-    $like = '%' . $search . '%';
-
-    $countParams[':q_title']    = $like;
-    $countParams[':q_orig']     = $like;
-    $countParams[':q_overview'] = $like;
-
-    $dataParams[':q_title']    = $like;
-    $dataParams[':q_orig']     = $like;
-    $dataParams[':q_overview'] = $like;
+    // Извлекаем год из запроса (4 цифры)
+    if (preg_match('/\b(19|20)\d{2}\b/', $search, $m)) {
+        $searchYear = (int)$m[0];
+        $search = preg_replace('/\b(19|20)\d{2}\b/', '', $search); // Удаляем год из поискового запроса
+        $search = trim($search);
+    }
+    
+    // Проверяем наличие точной фразы в кавычках
+    if (preg_match('/"([^"]+)"/', $search, $m)) {
+        $exactPhrase = trim($m[1]);
+        $search = preg_replace('/"[^"]+"/', '', $search); // Удаляем фразу из запроса
+        $search = trim($search);
+    }
+    
+    // Токенизация: разбиваем на слова, убираем пустые
+    $words = preg_split('/\s+/', $search);
+    $searchWords = array_filter(array_map('trim', $words), function($w) {
+        return mb_strlen($w) > 0;
+    });
+    $searchWords = array_values($searchWords);
+    
+    // Если есть точная фраза, добавляем её как отдельное слово
+    if ($exactPhrase !== null) {
+        array_unshift($searchWords, $exactPhrase);
+    }
+    
+    // Если нет слов после обработки, но есть год или фраза
+    if (empty($searchWords) && $searchYear === null && $exactPhrase === null) {
+        // Используем весь исходный запрос как одно слово
+        $searchWords = [trim($search)];
+    }
 }
 
-// Если пользователь ввёл год (4 цифры), добавляем фильтр по году выхода
-if (preg_match('/\b(19|20)\d{2}\b/', $search, $m)) {
-    $year = (int)$m[0];
-    $countSql .= " AND EXTRACT(YEAR FROM release_date) = :year";
-    $dataSql  .= " AND EXTRACT(YEAR FROM release_date) = :year";
-    $countParams[':year'] = $year;
-    $dataParams[':year']  = $year;
+// Построение условий поиска
+$searchConditions = [];
+$searchOrderBy = [];
+$paramIndex = 0;
+
+if (!empty($searchWords) || $exactPhrase !== null || $searchYear !== null) {
+    $searchParts = [];
+    
+    // Точная фраза (высший приоритет)
+    if ($exactPhrase !== null) {
+        $escapedPhrase = str_replace(['%', '_'], ['\\%', '\\_'], $exactPhrase);
+        $phraseLike = '%' . $escapedPhrase . '%';
+        
+        $searchParts[] = "(
+            title ILIKE :exact_title 
+            OR original_title ILIKE :exact_orig 
+            OR overview ILIKE :exact_overview
+        )";
+        
+        $countParams[':exact_title'] = $phraseLike;
+        $countParams[':exact_orig'] = $phraseLike;
+        $countParams[':exact_overview'] = $phraseLike;
+        
+        $dataParams[':exact_title'] = $phraseLike;
+        $dataParams[':exact_orig'] = $phraseLike;
+        $dataParams[':exact_overview'] = $phraseLike;
+    }
+    
+    // Поиск по каждому слову (AND логика - все слова должны быть найдены)
+    if (!empty($searchWords)) {
+        $wordConditions = [];
+        foreach ($searchWords as $word) {
+            $escapedWord = str_replace(['%', '_'], ['\\%', '\\_'], $word);
+            $wordLike = '%' . $escapedWord . '%';
+            
+            // Каждое слово должно быть найдено хотя бы в одном поле
+            $wordKey = ':word_' . $paramIndex++;
+            $wordConditions[] = "(
+                title ILIKE {$wordKey}_title 
+                OR original_title ILIKE {$wordKey}_orig 
+                OR overview ILIKE {$wordKey}_overview
+                OR genres::text ILIKE {$wordKey}_genres
+            )";
+            
+            $countParams[$wordKey . '_title'] = $wordLike;
+            $countParams[$wordKey . '_orig'] = $wordLike;
+            $countParams[$wordKey . '_overview'] = $wordLike;
+            $countParams[$wordKey . '_genres'] = $wordLike;
+            
+            $dataParams[$wordKey . '_title'] = $wordLike;
+            $dataParams[$wordKey . '_orig'] = $wordLike;
+            $dataParams[$wordKey . '_overview'] = $wordLike;
+            $dataParams[$wordKey . '_genres'] = $wordLike;
+        }
+        
+        // Все слова должны быть найдены (AND логика)
+        if (!empty($wordConditions)) {
+            $searchParts[] = '(' . implode(' AND ', $wordConditions) . ')';
+        }
+    }
+    
+    // Фильтр по году
+    if ($searchYear !== null) {
+        $countSql .= " AND EXTRACT(YEAR FROM release_date) = :search_year";
+        $dataSql  .= " AND EXTRACT(YEAR FROM release_date) = :search_year";
+        $countParams[':search_year'] = $searchYear;
+        $dataParams[':search_year'] = $searchYear;
+    }
+    
+    // Объединяем все условия поиска (OR между фразой и словами, если есть и то и другое)
+    if (!empty($searchParts)) {
+        $searchCondition = '(' . implode(' OR ', $searchParts) . ')';
+        $countSql .= " AND " . $searchCondition;
+        $dataSql  .= " AND " . $searchCondition;
+        
+        // Подготовка сортировки по релевантности (будет применена позже)
+        $hasSearch = true;
+    } else {
+        $hasSearch = false;
+    }
+} else {
+    $hasSearch = false;
 }
 
 // Не показываем фильмы, которые уже есть в личной коллекции (по названию)
@@ -89,16 +188,92 @@ $countStmt->execute($countParams);
 $totalItems = (int)$countStmt->fetchColumn();
 $totalPages = max(1, (int)ceil($totalItems / $perPage));
 
-// Получаем сами фильмы - ВСЕГДА рандомный порядок с seed для стабильности при пагинации
-// Используем MD5 hash от id и seed для псевдослучайной сортировки
-$dataSql .= " ORDER BY MD5(id::text || :seed) LIMIT :limit OFFSET :offset";
-$dataParams[':seed'] = (string)$randomSeed;
+// Сортировка: при поиске - по релевантности, без поиска - случайный порядок
+if ($hasSearch) {
+    // При поиске сортируем по популярности и рейтингу (релевантность будет вычислена в PHP)
+    $dataSql .= " ORDER BY popularity DESC NULLS LAST, vote_average DESC NULLS LAST, title ASC";
+} else {
+    // Без поиска - случайный порядок с seed для стабильности при пагинации
+    $dataSql .= " ORDER BY MD5(id::text || :seed)";
+    $dataParams[':seed'] = (string)$randomSeed;
+}
+
+$dataSql .= " LIMIT :limit OFFSET :offset";
 $dataParams[':limit']  = $perPage;
 $dataParams[':offset'] = $offset;
 
 $stmt = $pdo->prepare($dataSql);
 $stmt->execute($dataParams);
 $movies = $stmt->fetchAll();
+
+// Вычисляем релевантность и сортируем результаты при поиске
+if ($hasSearch && !empty($movies)) {
+    foreach ($movies as &$movie) {
+        $relevance = 0;
+        $titleLower = mb_strtolower($movie['title'] ?? '');
+        $origTitleLower = mb_strtolower($movie['original_title'] ?? '');
+        $overviewLower = mb_strtolower($movie['overview'] ?? '');
+        
+        // Точная фраза
+        if ($exactPhrase !== null) {
+            $phraseLower = mb_strtolower($exactPhrase);
+            if ($titleLower === $phraseLower) {
+                $relevance += 1000; // Точное совпадение в названии
+            } elseif (mb_strpos($titleLower, $phraseLower) === 0) {
+                $relevance += 500; // Начинается с фразы
+            } elseif (mb_strpos($titleLower, $phraseLower) !== false) {
+                $relevance += 200; // Содержит фразу в названии
+            } elseif (mb_strpos($origTitleLower, $phraseLower) !== false) {
+                $relevance += 150; // В оригинальном названии
+            } elseif (mb_strpos($overviewLower, $phraseLower) !== false) {
+                $relevance += 50; // В описании
+            }
+        }
+        
+        // Поиск по словам
+        foreach ($searchWords as $word) {
+            $wordLower = mb_strtolower($word);
+            if ($titleLower === $wordLower) {
+                $relevance += 500; // Точное совпадение слова в названии
+            } elseif (mb_strpos($titleLower, $wordLower) === 0) {
+                $relevance += 300; // Начинается со слова
+            } elseif (mb_strpos($titleLower, $wordLower) !== false) {
+                $relevance += 100; // Содержит слово в названии
+            } elseif (mb_strpos($origTitleLower, $wordLower) !== false) {
+                $relevance += 75; // В оригинальном названии
+            } elseif (mb_strpos($overviewLower, $wordLower) !== false) {
+                $relevance += 25; // В описании
+            }
+        }
+        
+        // Бонус за популярность и рейтинг
+        if (!empty($movie['popularity']) && is_numeric($movie['popularity'])) {
+            $relevance += min(50, (float)$movie['popularity'] / 10); // До 50 баллов за популярность
+        }
+        if (!empty($movie['vote_average']) && is_numeric($movie['vote_average'])) {
+            $relevance += (float)$movie['vote_average'] * 5; // До 50 баллов за рейтинг
+        }
+        
+        $movie['_relevance'] = $relevance;
+    }
+    unset($movie);
+    
+    // Сортируем по релевантности
+    usort($movies, function($a, $b) {
+        $relA = $a['_relevance'] ?? 0;
+        $relB = $b['_relevance'] ?? 0;
+        if ($relB !== $relA) {
+            return $relB <=> $relA;
+        }
+        // Если релевантность одинаковая, сортируем по популярности
+        $popA = (float)($a['popularity'] ?? 0);
+        $popB = (float)($b['popularity'] ?? 0);
+        if ($popB !== $popA) {
+            return $popB <=> $popA;
+        }
+        return 0;
+    });
+}
 
 // 3. Улучшенный алгоритм рекомендаций: анализируем жанры, описания, тематику, годы, популярность и рейтинг
 $favoriteGenres = [];
@@ -416,7 +591,15 @@ if (count($recommendedMovies) < 10 && $mode === 'recommended') {
 }
 
 // Выбор набора для отображения
-$moviesToShow = ($mode === 'all' || empty($recommendedMovies)) ? $movies : $recommendedMovies;
+// Если есть поисковый запрос, всегда показываем результаты поиска, независимо от режима
+// Алгоритм рекомендаций применяется только когда нет поискового запроса
+if ($search !== '') {
+    // При поиске показываем все найденные результаты
+    $moviesToShow = $movies;
+} else {
+    // Без поиска используем алгоритм рекомендаций или все фильмы
+    $moviesToShow = ($mode === 'all' || empty($recommendedMovies)) ? $movies : $recommendedMovies;
+}
 
 // Перегенерируем количество для отображаемого набора (только визуально)
 $visibleCount = count($moviesToShow);

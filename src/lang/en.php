@@ -164,7 +164,7 @@ return [
     'afisha' => [
         'title' => 'Movie Afisha',
         'description' => 'Browse movies that are not yet in your collection. Recommendations are based on your tastes (genres) where possible.',
-        'search_placeholder' => 'Search by title...',
+        'search_placeholder' => 'Search by title... (e.g. "Marvel" or multiple words)',
         'mode_recommended' => 'Recommended for you',
         'mode_all' => 'All movies',
         'filter_btn' => 'Search',
