@@ -121,7 +121,7 @@ require_once 'includes/header.php';
                         <p style="color: #b2bec3; font-style: italic;"><?= htmlspecialchars(t('community.no_bio')) ?></p>
                     <?php endif; ?>
                     
-                    <span class="btn-visit"><?= htmlspecialchars(t('community.visit_profile')) ?></span>
+                    <span class="btn-visit"><?= html_entity_decode(t('community.visit_profile'), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
                 </div>
             </a>
         <?php endforeach; ?>

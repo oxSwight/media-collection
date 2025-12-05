@@ -170,7 +170,7 @@ require_once 'includes/header.php';
                         <p style="color: #636e72; font-size: 0.8rem;">
                             <?= $friend['bio'] ? htmlspecialchars(mb_strimwidth($friend['bio'], 0, 30, "...")) : htmlspecialchars(t('community.friend')) ?>
                         </p>
-                        <span class="btn-visit"><?= htmlspecialchars(t('community.view_collection')) ?></span>
+                        <span class="btn-visit"><?= html_entity_decode(t('community.view_collection'), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
                     </div>
                 </a>
             <?php endforeach; ?>

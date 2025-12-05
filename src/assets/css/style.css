@@ -733,6 +733,7 @@ body {
     transform: scale(1);
     animation: pulse 2s infinite;
     z-index: 10;
+    
     border: 2px solid white;
     flex-shrink: 0;
     pointer-events: none;
