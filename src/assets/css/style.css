@@ -1056,6 +1056,19 @@ a[href="add_item.php"]:hover {
     color: #0984e3;
 }
 
+/* Стили для темной темы - улучшенная читаемость */
+.dark-theme .type-movie {
+    background: #ffeaa7 !important;
+    color: #2d3436 !important;
+    font-weight: 900 !important;
+}
+
+.dark-theme .type-book {
+    background: #74b9ff !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+}
+
 .media-card h3 {
     margin: 0 0 5px 0;
     font-size: 1.1rem;

@@ -24,40 +24,94 @@ if ($myId) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token()) ?>">
     <title><?= htmlspecialchars(t('site.title')) ?></title>
-    <link rel="stylesheet" href="/assets/css/style.css?v=2.0">
+    <link rel="stylesheet" href="/assets/css/style.css?v=2.1">
     <script>
-        // Тема (светлая/темная)
+        // Улучшенная система управления темой
         (function() {
-            try {
-                const savedTheme = localStorage.getItem('theme');
-                if (savedTheme === 'dark') {
-                    document.documentElement.classList.add('dark-theme');
+            'use strict';
+            
+            // Функция для безопасной работы с localStorage
+            const storage = {
+                get: function(key) {
+                    try {
+                        return localStorage.getItem(key);
+                    } catch (e) {
+                        console.warn('localStorage недоступен:', e);
+                        return null;
+                    }
+                },
+                set: function(key, value) {
+                    try {
+                        localStorage.setItem(key, value);
+                        return true;
+                    } catch (e) {
+                        console.warn('Не удалось сохранить в localStorage:', e);
+                        return false;
+                    }
                 }
-            } catch (e) {}
-        })();
-        
-        // Функция переключения темы (должна быть доступна сразу)
-        function toggleTheme() {
-            const root = document.documentElement;
-            const isDark = root.classList.toggle('dark-theme');
-            const checkbox = document.getElementById('theme-toggle');
-            if (checkbox) {
-                checkbox.checked = isDark;
+            };
+            
+            // Функция применения темы
+            function applyTheme(isDark) {
+                const root = document.documentElement;
+                if (isDark) {
+                    root.classList.add('dark-theme');
+                } else {
+                    root.classList.remove('dark-theme');
+                }
             }
-            try {
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            } catch (e) {}
-        }
-        
-        // Устанавливаем начальное состояние переключателя темы
-        (function() {
-            try {
-                const savedTheme = localStorage.getItem('theme');
+            
+            // Функция синхронизации checkbox с темой
+            function syncCheckbox() {
                 const checkbox = document.getElementById('theme-toggle');
                 if (checkbox) {
-                    checkbox.checked = savedTheme === 'dark';
+                    const isDark = document.documentElement.classList.contains('dark-theme');
+                    checkbox.checked = isDark;
                 }
-            } catch (e) {}
+            }
+            
+            // Инициализация темы при загрузке страницы (до рендеринга)
+            const savedTheme = storage.get('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            // Приоритет: сохраненная тема > системная настройка > светлая
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                applyTheme(true);
+            } else {
+                applyTheme(false);
+            }
+            
+            // Синхронизация checkbox после загрузки DOM
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', syncCheckbox);
+            } else {
+                syncCheckbox();
+            }
+            
+            // Глобальная функция переключения темы
+            window.toggleTheme = function() {
+                const root = document.documentElement;
+                const isDark = root.classList.contains('dark-theme');
+                const newIsDark = !isDark;
+                
+                applyTheme(newIsDark);
+                syncCheckbox();
+                storage.set('theme', newIsDark ? 'dark' : 'light');
+                
+                // Дополнительная проверка синхронизации через небольшую задержку
+                setTimeout(syncCheckbox, 100);
+            };
+            
+            // Слушаем изменения системной темы (опционально)
+            if (window.matchMedia) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                    // Применяем только если пользователь не сохранил свою тему
+                    if (!storage.get('theme')) {
+                        applyTheme(e.matches);
+                        syncCheckbox();
+                    }
+                });
+            }
         })();
         
         window.csrfToken = <?= json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
@@ -202,7 +256,7 @@ if ($myId) {
                     <li>
                         <div class="toggle-switch">
                             <label>
-                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()" aria-label="Переключить тему">
                                 <span class="slider"></span>
                             </label>
                         </div>
