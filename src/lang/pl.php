@@ -172,8 +172,10 @@ return [
         'no_movies' => 'Brak filmów pasujących do Twoich filtrów. Spróbuj zmienić wyszukiwanie.',
         'show_all' => 'Pokaż wszystkie filmy',
         'found' => 'Znaleziono:',
-        'refresh_btn' => '⟳ Odśwież filmy',
-        'randomize_btn' => '🔄 Losuj filmy',
+        'refresh_btn' => '⟳ Odśwież z TMDb',
+        'refresh_btn_title' => 'Pobiera najnowsze filmy z The Movie Database i aktualizuje listę',
+        'randomize_btn' => '🔄 Zmień kolejność',
+        'randomize_btn_title' => 'Losowo zmienia kolejność wyświetlania filmów',
         'add_to_collection' => 'Do mojej kolekcji',
     ],
     'watchlist' => [

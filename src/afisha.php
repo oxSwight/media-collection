@@ -431,11 +431,11 @@ require_once 'includes/header.php';
 
 <div class="dashboard">
     <div class="header-actions">
-        <a href="admin_afisha_refresh.php" class="btn-register" style="text-decoration: none;">
+        <a href="admin_afisha_refresh.php" class="btn-register" style="text-decoration: none;" title="<?= htmlspecialchars(t('afisha.refresh_btn_title')) ?>">
             <?= htmlspecialchars(t('afisha.refresh_btn')) ?>
         </a>
         <?php if ($mode === 'all'): ?>
-            <a href="afisha.php?mode=all&refresh=1<?= $search ? '&q=' . urlencode($search) : '' ?>" class="btn-register" style="text-decoration: none; margin-left: 10px;">
+            <a href="afisha.php?mode=all&refresh=1<?= $search ? '&q=' . urlencode($search) : '' ?>" class="btn-register" style="text-decoration: none; margin-left: 10px;" title="<?= htmlspecialchars(t('afisha.randomize_btn_title')) ?>">
                 <?= htmlspecialchars(t('afisha.randomize_btn')) ?>
             </a>
         <?php endif; ?>

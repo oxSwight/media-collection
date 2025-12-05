@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = t('auth.invalid_email');
     }
     else {
-        // Проверка, не занят ли email
+        // Проверка, не занят ли email (оптимистичная проверка для UX)
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         
@@ -28,14 +28,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             
             // Генерируем уникальный Friend Code (6 символов)
-            $friendCode = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
-
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, friend_code) VALUES (?, ?, ?, ?)");
-            if ($stmt->execute([$username, $email, $hashedPassword, $friendCode])) {
-                header("Location: login.php?registered=1");
-                exit;
-            } else {
+            // Используем цикл для гарантии уникальности
+            $maxAttempts = 10;
+            $friendCode = null;
+            for ($i = 0; $i < $maxAttempts; $i++) {
+                $candidate = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
+                $checkStmt = $pdo->prepare("SELECT id FROM users WHERE friend_code = ?");
+                $checkStmt->execute([$candidate]);
+                if ($checkStmt->rowCount() === 0) {
+                    $friendCode = $candidate;
+                    break;
+                }
+            }
+            
+            if ($friendCode === null) {
                 $error = t('common.error');
+            } else {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO users (username, email, password, friend_code) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$username, $email, $hashedPassword, $friendCode]);
+                    
+                    // Успешная регистрация
+                    header("Location: login.php?registered=1");
+                    exit;
+                } catch (PDOException $e) {
+                    // Обработка race condition: если email уже существует (код 23505 - unique violation в PostgreSQL)
+                    // В PostgreSQL код ошибки может быть строкой '23505' или числом 23505
+                    $errorCode = $e->getCode();
+                    $errorMessage = strtolower($e->getMessage());
+                    
+                    if ($errorCode == '23505' || $errorCode == 23505 || 
+                        strpos($errorMessage, 'unique') !== false || 
+                        strpos($errorMessage, 'duplicate') !== false ||
+                        strpos($errorMessage, 'violates unique constraint') !== false) {
+                        $error = t('auth.email_taken');
+                    } else {
+                        // Другая ошибка БД
+                        error_log("Registration error: " . $e->getMessage() . " (Code: " . $errorCode . ")");
+                        $error = t('common.error');
+                    }
+                }
             }
         }
     }
@@ -64,12 +96,41 @@ require_once 'includes/header.php';
                 <label><?= htmlspecialchars(t('auth.password')) ?></label>
                 <input type="password" name="password" required>
             </div>
-            <button type="submit" class="btn-submit"><?= htmlspecialchars(t('auth.register_btn')) ?></button>
+            <button type="submit" class="btn-submit" id="registerBtn"><?= htmlspecialchars(t('auth.register_btn')) ?></button>
         </form>
         <p style="text-align: center; margin-top: 20px;">
             <?= htmlspecialchars(t('auth.has_account')) ?> <a href="login.php" style="color: #6c5ce7; font-weight: bold;"><?= htmlspecialchars(t('auth.login_btn')) ?></a>
         </p>
     </div>
 </div>
+
+<script>
+// Защита от двойного клика при регистрации
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="register.php"]');
+    const submitBtn = document.getElementById('registerBtn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            // Отключаем кнопку и меняем текст
+            submitBtn.disabled = true;
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '<?= htmlspecialchars(addslashes(t("common.processing") ?? "Обработка...")) ?>';
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+            
+            // Если форма не прошла валидацию, возвращаем кнопку в исходное состояние
+            setTimeout(function() {
+                if (!form.checkValidity()) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                }
+            }, 100);
+        });
+    }
+});
+</script>
 
 <?php require_once 'includes/footer.php'; ?>

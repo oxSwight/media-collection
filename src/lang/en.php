@@ -172,8 +172,10 @@ return [
         'no_movies' => 'No movies match your filters. Try changing the search.',
         'show_all' => 'Show all movies',
         'found' => 'Found:',
-        'refresh_btn' => '⟳ Refresh movies',
-        'randomize_btn' => '🔄 Randomize movies',
+        'refresh_btn' => '⟳ Refresh from TMDb',
+        'refresh_btn_title' => 'Fetches latest movies from The Movie Database and updates the list',
+        'randomize_btn' => '🔄 Shuffle order',
+        'randomize_btn_title' => 'Randomly changes the display order of movies',
         'add_to_collection' => 'Add to my collection',
     ],
     'watchlist' => [
