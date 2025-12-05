@@ -50,12 +50,69 @@
 .dark-theme .lang-select {
     background: var(--white);
     border-color: #636e72;
-    color: var(--text);
+    color: var(--text) !important;
 }
 
 .dark-theme .lang-select:hover {
     background: #3d4146;
     border-color: var(--primary);
+    color: var(--text) !important;
+}
+
+.dark-theme .nav-links a {
+    color: var(--text) !important;
+}
+
+.dark-theme .nav-links button {
+    color: var(--text) !important;
+}
+
+.dark-theme .nav-links .btn-logout {
+    color: white !important;
+}
+
+.dark-theme .nav-links .btn-register {
+    color: white !important;
+}
+
+.dark-theme .logo {
+    color: var(--primary) !important;
+}
+
+.dark-theme .mobile-menu-toggle span {
+    background: var(--primary);
+}
+
+.dark-theme h1,
+.dark-theme h2,
+.dark-theme h3,
+.dark-theme h4,
+.dark-theme h5,
+.dark-theme h6 {
+    color: var(--text) !important;
+}
+
+.dark-theme p,
+.dark-theme span,
+.dark-theme div {
+    color: var(--text);
+}
+
+.dark-theme .profile-info h1,
+.dark-theme .profile-info p {
+    color: var(--text) !important;
+}
+
+.dark-theme .user-card-info h3 {
+    color: var(--text) !important;
+}
+
+.dark-theme .media-card h3 {
+    color: var(--text) !important;
+}
+
+.dark-theme .auth-form h2 {
+    color: var(--primary) !important;
 }
 
 
@@ -164,7 +221,7 @@ body {
 .nav-links {
     list-style: none;
     display: flex;
-    gap: 20px;
+    gap: 15px;
     margin: 0;
     padding: 0;
     align-items: center;
@@ -175,12 +232,20 @@ body {
 .nav-links li {
     display: flex;
     align-items: center;
+    height: 36px; /* Фиксированная высота для выравнивания */
 }
 
 .nav-links form {
     display: flex;
     align-items: center;
     margin: 0;
+    height: 36px; /* Фиксированная высота для выравнивания */
+}
+
+.nav-links .lang-switcher {
+    height: 36px; /* Фиксированная высота для выравнивания */
+    display: flex;
+    align-items: center;
 }
 
 /* Кнопка переключения темы */
@@ -211,6 +276,7 @@ body {
 .lang-switcher {
     display: flex;
     align-items: center;
+    height: 36px; /* Фиксированная высота для выравнивания */
 }
 
 .lang-select {
@@ -1174,6 +1240,11 @@ a[href="add_item.php"]:hover {
         transition: max-height 0.3s ease, padding 0.3s ease;
     }
     
+    .dark-theme .nav-links {
+        background: var(--white);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    
     .nav-links.mobile-open {
         display: flex;
         max-height: 600px;
@@ -1184,7 +1255,12 @@ a[href="add_item.php"]:hover {
         width: 100%;
         justify-content: flex-start;
         padding: 10px 20px;
-        border-bottom: 1px solid #f1f2f6;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        height: auto;
+    }
+    
+    .dark-theme .nav-links li {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .nav-links li:last-child {
