@@ -16,18 +16,72 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 require_valid_csrf_token($_POST['_token'] ?? null);
 
 $upcomingId = (int)($_POST['upcoming_id'] ?? 0);
+$externalId = $_POST['external_id'] ?? null;
+$tmdbData = null;
 
-if ($upcomingId <= 0) {
-    header('Location: afisha.php');
-    exit;
+// Если передан external_id (из прямого поиска TMDb), получаем данные из TMDb API
+if (!empty($externalId) && is_numeric($externalId)) {
+    $apiKey = getenv('TMDB_API_KEY');
+    if ($apiKey) {
+        // Выбираем язык для API
+        $langMap = [
+            'pl' => 'pl-PL',
+            'ru' => 'ru-RU',
+            'en' => 'en-US',
+        ];
+        $apiLang = $langMap[$_SESSION['lang'] ?? 'pl'] ?? 'en-US';
+        
+        // Запрос к TMDb API для получения детальной информации о фильме
+        $url = sprintf(
+            'https://api.themoviedb.org/3/movie/%d?api_key=%s&language=%s',
+            (int)$externalId,
+            urlencode($apiKey),
+            urlencode($apiLang)
+        );
+        
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($response && $httpCode === 200) {
+            $tmdbData = json_decode($response, true);
+        }
+    }
 }
 
-// Берем фильм из upcoming_movies
-$stmt = $pdo->prepare("SELECT * FROM upcoming_movies WHERE id = ?");
-$stmt->execute([$upcomingId]);
-$movie = $stmt->fetch();
-
-if (!$movie) {
+// Если есть данные из TMDb, используем их
+if ($tmdbData && is_array($tmdbData)) {
+    // Формируем данные фильма из ответа TMDb
+    $posterUrl = null;
+    if (!empty($tmdbData['poster_path'])) {
+        $posterUrl = 'https://image.tmdb.org/t/p/w342' . $tmdbData['poster_path'];
+    }
+    
+    $movie = [
+        'title' => $tmdbData['title'] ?? '',
+        'original_title' => $tmdbData['original_title'] ?? '',
+        'overview' => $tmdbData['overview'] ?? '',
+        'poster_url' => $posterUrl,
+        'release_date' => $tmdbData['release_date'] ?? null,
+    ];
+} elseif ($upcomingId > 0) {
+    // Иначе берем фильм из локальной БД upcoming_movies
+    $stmt = $pdo->prepare("SELECT * FROM upcoming_movies WHERE id = ?");
+    $stmt->execute([$upcomingId]);
+    $movie = $stmt->fetch();
+    
+    if (!$movie) {
+        header('Location: afisha.php');
+        exit;
+    }
+} else {
     header('Location: afisha.php');
     exit;
 }

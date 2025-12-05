@@ -21,6 +21,10 @@ $page    = $pagination['page'];
 $perPage = $pagination['per_page'];
 $offset  = $pagination['offset'];
 
+// Получаем API ключ TMDb
+$apiKey = getenv('TMDB_API_KEY');
+$useTmdbSearch = !empty($search) && !empty($apiKey); // Используем TMDb поиск если есть запрос и API ключ
+
 // Seed для рандомизации (используем timestamp для уникальности)
 $randomSeed = $refresh ? time() : ($_SESSION['afisha_random_seed'] ?? time());
 $_SESSION['afisha_random_seed'] = $randomSeed;
@@ -32,6 +36,186 @@ $stmtSeen->execute([$myId]);
 foreach ($stmtSeen->fetchAll(PDO::FETCH_COLUMN) as $t) {
     $seenTitles[$t] = true;
 }
+
+// Если есть поисковый запрос и API ключ - используем прямой поиск в TMDb
+$movies = [];
+$totalItems = 0;
+$totalPages = 0;
+$hasSearch = false;
+
+if ($useTmdbSearch) {
+    // Выбираем язык для API в зависимости от текущего языка интерфейса
+    $langMap = [
+        'pl' => 'pl-PL',
+        'ru' => 'ru-RU',
+        'en' => 'en-US',
+    ];
+    $apiLang = $langMap[$currentLang] ?? 'en-US';
+    
+    // Функция для запроса к TMDb API
+    function fetch_tmdb_api(string $url): ?array {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($ch);
+        $err = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($err || !$response || $httpCode !== 200) {
+            error_log("TMDb API error: " . ($err ?: "HTTP $httpCode"));
+            return null;
+        }
+        
+        $data = json_decode($response, true);
+        return is_array($data) ? $data : null;
+    }
+    
+    // Подготавливаем поисковый запрос (убираем кавычки для TMDb)
+    $searchQuery = trim($search);
+    $searchQuery = preg_replace('/"/', '', $searchQuery); // Убираем кавычки
+    
+    // Извлекаем год из запроса для фильтрации
+    $searchYear = null;
+    if (preg_match('/\b(19|20)\d{2}\b/', $searchQuery, $m)) {
+        $searchYear = (int)$m[0];
+        $searchQuery = preg_replace('/\b(19|20)\d{2}\b/', '', $searchQuery);
+        $searchQuery = trim($searchQuery);
+    }
+    
+    // Запрос к TMDb Search API
+    $tmdbPage = max(1, $page);
+    $url = sprintf(
+        'https://api.themoviedb.org/3/search/movie?api_key=%s&language=%s&query=%s&page=%d&include_adult=false',
+        urlencode($apiKey),
+        urlencode($apiLang),
+        urlencode($searchQuery),
+        $tmdbPage
+    );
+    
+    $tmdbData = fetch_tmdb_api($url);
+    
+    if ($tmdbData && !empty($tmdbData['results'])) {
+        $hasSearch = true;
+        $totalItems = (int)($tmdbData['total_results'] ?? 0);
+        $totalPages = min((int)($tmdbData['total_pages'] ?? 1), 500); // TMDb ограничивает до 500 страниц
+        
+        // Преобразуем результаты TMDb в формат приложения
+        foreach ($tmdbData['results'] as $tmdbMovie) {
+            // Пропускаем фильмы, которые уже есть в коллекции
+            $movieTitle = mb_strtolower($tmdbMovie['title'] ?? '');
+            if (isset($seenTitles[$movieTitle])) {
+                continue;
+            }
+            
+            // Фильтр по году (если указан)
+            if ($searchYear !== null) {
+                $releaseYear = null;
+                if (!empty($tmdbMovie['release_date'])) {
+                    $releaseYear = (int)date('Y', strtotime($tmdbMovie['release_date']));
+                }
+                if ($releaseYear !== $searchYear) {
+                    continue;
+                }
+            }
+            
+            // Фильтр по году - только от 2000 года
+            $releaseYear = null;
+            if (!empty($tmdbMovie['release_date'])) {
+                $releaseYear = (int)date('Y', strtotime($tmdbMovie['release_date']));
+            }
+            if ($releaseYear !== null && $releaseYear < 2000) {
+                continue;
+            }
+            
+            // Формируем жанры
+            $genres = '';
+            if (!empty($tmdbMovie['genre_ids']) && is_array($tmdbMovie['genre_ids'])) {
+                $genres = implode(',', array_map('intval', $tmdbMovie['genre_ids']));
+            }
+            
+            // Формируем URL постера
+            $posterUrl = null;
+            if (!empty($tmdbMovie['poster_path'])) {
+                $posterUrl = 'https://image.tmdb.org/t/p/w342' . $tmdbMovie['poster_path'];
+            }
+            
+            // Преобразуем в формат приложения
+            $movie = [
+                'id' => (int)$tmdbMovie['id'],
+                'external_id' => (string)$tmdbMovie['id'],
+                'title' => $tmdbMovie['title'] ?? '',
+                'original_title' => $tmdbMovie['original_title'] ?? '',
+                'overview' => $tmdbMovie['overview'] ?? '',
+                'poster_url' => $posterUrl,
+                'release_date' => $tmdbMovie['release_date'] ?? null,
+                'genres' => $genres,
+                'popularity' => $tmdbMovie['popularity'] ?? null,
+                'vote_average' => !empty($tmdbMovie['vote_average']) ? (float)$tmdbMovie['vote_average'] : null,
+            ];
+            
+            $movies[] = $movie;
+        }
+        
+        // Применяем пагинацию (TMDb уже вернул нужную страницу, но нужно ограничить количество)
+        $movies = array_slice($movies, 0, $perPage);
+        
+        // Вычисляем релевантность и сортируем
+        $searchLower = mb_strtolower($searchQuery);
+        foreach ($movies as &$movie) {
+            $relevance = 0;
+            $titleLower = mb_strtolower($movie['title'] ?? '');
+            $origTitleLower = mb_strtolower($movie['original_title'] ?? '');
+            
+            // Точное совпадение в названии
+            if ($titleLower === $searchLower) {
+                $relevance += 1000;
+            } elseif (mb_strpos($titleLower, $searchLower) === 0) {
+                $relevance += 500;
+            } elseif (mb_strpos($titleLower, $searchLower) !== false) {
+                $relevance += 200;
+            } elseif (mb_strpos($origTitleLower, $searchLower) !== false) {
+                $relevance += 150;
+            }
+            
+            // Бонус за популярность и рейтинг
+            if (!empty($movie['popularity']) && is_numeric($movie['popularity'])) {
+                $relevance += min(50, (float)$movie['popularity'] / 10);
+            }
+            if (!empty($movie['vote_average']) && is_numeric($movie['vote_average'])) {
+                $relevance += (float)$movie['vote_average'] * 5;
+            }
+            
+            $movie['_relevance'] = $relevance;
+        }
+        unset($movie);
+        
+        // Сортируем по релевантности
+        usort($movies, function($a, $b) {
+            $relA = $a['_relevance'] ?? 0;
+            $relB = $b['_relevance'] ?? 0;
+            if ($relB !== $relA) {
+                return $relB <=> $relA;
+            }
+            $popA = (float)($a['popularity'] ?? 0);
+            $popB = (float)($b['popularity'] ?? 0);
+            if ($popB !== $popA) {
+                return $popB <=> $popA;
+            }
+            return 0;
+        });
+    } else {
+        // Если TMDb API не вернул результаты, используем локальную БД
+        $useTmdbSearch = false;
+    }
+}
+
+// Если не используем TMDb поиск, используем локальную БД
+if (!$useTmdbSearch) {
 
 // 2. Строим базовый запрос по афише (ТОЛЬКО именованные параметры, без смешивания)
 // Фильтруем только фильмы от 2000 года
@@ -229,12 +413,12 @@ $dataSql .= " LIMIT :limit OFFSET :offset";
 $dataParams[':limit']  = $perPage;
 $dataParams[':offset'] = $offset;
 
-$stmt = $pdo->prepare($dataSql);
-$stmt->execute($dataParams);
-$movies = $stmt->fetchAll();
-
-// Вычисляем релевантность и сортируем результаты при поиске
-if ($hasSearch && !empty($movies)) {
+    $stmt = $pdo->prepare($dataSql);
+    $stmt->execute($dataParams);
+    $movies = $stmt->fetchAll();
+    
+    // Вычисляем релевантность и сортируем результаты при поиске
+    if ($hasSearch && !empty($movies)) {
     foreach ($movies as &$movie) {
         $relevance = 0;
         $titleLower = mb_strtolower($movie['title'] ?? '');
@@ -300,9 +484,14 @@ if ($hasSearch && !empty($movies)) {
         }
         return 0;
     });
-}
+    }
+} // Конец блока if (!$useTmdbSearch)
 
 // 3. Улучшенный алгоритм рекомендаций: анализируем жанры, описания, тематику, годы, популярность и рейтинг
+// Применяется только если не используется прямой поиск TMDb и нет поискового запроса
+$recommendedMovies = [];
+
+if (!$useTmdbSearch && empty($search)) {
 $favoriteGenres = [];
 $favoriteKeywords = [];
 $favoriteThemes = [];
@@ -616,15 +805,15 @@ if (count($recommendedMovies) < 10 && $mode === 'recommended') {
         return $voteB <=> $voteA;
     });
 }
+} // Конец блока if (!$useTmdbSearch && empty($search)) - алгоритм рекомендаций
 
 // Выбор набора для отображения
-// Если есть поисковый запрос, всегда показываем результаты поиска, независимо от режима
-// Алгоритм рекомендаций применяется только когда нет поискового запроса
-if ($search !== '') {
-    // При поиске показываем все найденные результаты
+// Если используется прямой поиск TMDb или есть поисковый запрос, показываем результаты поиска
+if ($useTmdbSearch || $search !== '') {
+    // При поиске показываем все найденные результаты напрямую от TMDb
     $moviesToShow = $movies;
 } else {
-    // Без поиска используем алгоритм рекомендаций или все фильмы
+    // Без поиска используем алгоритм рекомендаций или все фильмы из локальной БД
     $moviesToShow = ($mode === 'all' || empty($recommendedMovies)) ? $movies : $recommendedMovies;
 }
 
@@ -733,7 +922,11 @@ require_once 'includes/header.php';
                         <div class="afisha-buttons-wrapper">
                             <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
                                 <?= csrf_input(); ?>
-                                <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                <?php if ($useTmdbSearch && !empty($movie['external_id'])): ?>
+                                    <input type="hidden" name="external_id" value="<?= htmlspecialchars($movie['external_id']) ?>">
+                                <?php else: ?>
+                                    <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                <?php endif; ?>
                                 <button type="submit" class="afisha-add-btn">
                                     <span class="plus-icon">+</span>
                                     <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
@@ -742,7 +935,11 @@ require_once 'includes/header.php';
                             <form method="POST" action="watchlist.php" onsubmit="event.stopPropagation();">
                                 <?= csrf_input(); ?>
                                 <input type="hidden" name="add_to_watchlist" value="1">
-                                <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                <?php if ($useTmdbSearch && !empty($movie['external_id'])): ?>
+                                    <input type="hidden" name="external_id" value="<?= htmlspecialchars($movie['external_id']) ?>">
+                                <?php else: ?>
+                                    <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                <?php endif; ?>
                                 <input type="hidden" name="title" value="<?= htmlspecialchars($movie['title']) ?>">
                                 <button type="submit" class="afisha-watchlist-btn">
                                     ⭐ <?= htmlspecialchars(t('watchlist.add')) ?>

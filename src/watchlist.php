@@ -16,8 +16,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_watchlist'])) 
     require_valid_csrf_token($_POST['_token'] ?? null);
     
     $upcomingId = (int)($_POST['upcoming_id'] ?? 0);
+    $externalId = $_POST['external_id'] ?? null;
     $title = trim($_POST['title'] ?? '');
     $notes = trim($_POST['notes'] ?? '');
+    
+    // Если передан external_id (из прямого поиска TMDb), находим или создаем запись в upcoming_movies
+    if (!empty($externalId) && is_numeric($externalId) && !empty($title)) {
+        // Ищем фильм по external_id
+        $stmt = $pdo->prepare("SELECT id FROM upcoming_movies WHERE external_id = ?");
+        $stmt->execute([(string)$externalId]);
+        $existing = $stmt->fetch();
+        
+        if ($existing) {
+            $upcomingId = (int)$existing['id'];
+        } else {
+            // Если фильма нет в БД, получаем данные из TMDb и сохраняем
+            $apiKey = getenv('TMDB_API_KEY');
+            if ($apiKey) {
+                $langMap = [
+                    'pl' => 'pl-PL',
+                    'ru' => 'ru-RU',
+                    'en' => 'en-US',
+                ];
+                $apiLang = $langMap[$_SESSION['lang'] ?? 'pl'] ?? 'en-US';
+                
+                $url = sprintf(
+                    'https://api.themoviedb.org/3/movie/%d?api_key=%s&language=%s',
+                    (int)$externalId,
+                    urlencode($apiKey),
+                    urlencode($apiLang)
+                );
+                
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 15,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                ]);
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($response && $httpCode === 200) {
+                    $tmdbData = json_decode($response, true);
+                    if ($tmdbData && is_array($tmdbData)) {
+                        $genres = '';
+                        if (!empty($tmdbData['genres']) && is_array($tmdbData['genres'])) {
+                            $genreIds = array_column($tmdbData['genres'], 'id');
+                            $genres = implode(',', array_map('intval', $genreIds));
+                        }
+                        
+                        $posterUrl = null;
+                        if (!empty($tmdbData['poster_path'])) {
+                            $posterUrl = 'https://image.tmdb.org/t/p/w342' . $tmdbData['poster_path'];
+                        }
+                        
+                        // Сохраняем в upcoming_movies
+                        $stmt = $pdo->prepare("
+                            INSERT INTO upcoming_movies (external_id, title, original_title, overview, poster_url, release_date, genres, popularity, vote_average, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                            ON CONFLICT (external_id) DO UPDATE SET
+                                title = EXCLUDED.title,
+                                original_title = EXCLUDED.original_title,
+                                overview = EXCLUDED.overview,
+                                poster_url = EXCLUDED.poster_url,
+                                release_date = EXCLUDED.release_date,
+                                genres = EXCLUDED.genres,
+                                popularity = EXCLUDED.popularity,
+                                vote_average = EXCLUDED.vote_average,
+                                updated_at = NOW()
+                            RETURNING id
+                        ");
+                        $stmt->execute([
+                            (string)$tmdbData['id'],
+                            $tmdbData['title'] ?? '',
+                            $tmdbData['original_title'] ?? '',
+                            $tmdbData['overview'] ?? '',
+                            $posterUrl,
+                            $tmdbData['release_date'] ?? null,
+                            $genres,
+                            $tmdbData['popularity'] ?? null,
+                            !empty($tmdbData['vote_average']) ? (float)$tmdbData['vote_average'] : null,
+                        ]);
+                        $result = $stmt->fetch();
+                        $upcomingId = (int)$result['id'];
+                    }
+                }
+            }
+        }
+    }
     
     if ($upcomingId > 0 && !empty($title)) {
         try {

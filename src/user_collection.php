@@ -169,32 +169,35 @@ require_once 'includes/header.php';
                     $imagePath = $item['image_path'] ?? '';
                     // Проверяем, существует ли файл, если это локальный путь
                     $imageExists = false;
+                    $imageUrl = $imagePath;
+                    
                     if (!empty($imagePath)) {
                         if (strpos($imagePath, 'http') === 0 || strpos($imagePath, 'https') === 0) {
-                            // Это внешний URL - считаем, что он существует
+                            // Это внешний URL - используем как есть
                             $imageExists = true;
+                            $imageUrl = $imagePath;
                         } else {
                             // Это локальный путь - проверяем существование файла
                             // Путь в БД хранится как 'uploads/filename.jpg' относительно корня проекта
-                            // __DIR__ указывает на src/, поэтому используем dirname(__DIR__) для корня проекта
                             $projectRoot = dirname(__DIR__);
                             $fullPath = $projectRoot . '/' . ltrim($imagePath, '/');
                             $imageExists = file_exists($fullPath);
                             
-                            // Если файл не найден по относительному пути, пробуем относительно src/
+                            // Если файл не найден, пробуем относительно src/
                             if (!$imageExists) {
                                 $altPath = __DIR__ . '/' . ltrim($imagePath, '/');
                                 $imageExists = file_exists($altPath);
-                                if ($imageExists) {
-                                    // Обновляем путь для отображения
-                                    $imagePath = $imagePath;
-                                }
+                            }
+                            
+                            // Формируем URL для браузера (относительно корня сайта)
+                            if ($imageExists) {
+                                $imageUrl = '/' . ltrim($imagePath, '/');
                             }
                         }
                     }
                     ?>
-                    <?php if ($imageExists): ?>
-                        <img src="<?= htmlspecialchars($imagePath) ?>" alt="Okładka" onerror="this.parentElement.innerHTML='<div class=\'no-image\'>' + '<?= htmlspecialchars(t('item.image')) ?>' + '</div>'">
+                    <?php if ($imageExists && !empty($imageUrl)): ?>
+                        <img src="<?= htmlspecialchars($imageUrl) ?>" alt="Okładka" onerror="this.parentElement.innerHTML='<div class=\'no-image\'>' + '<?= htmlspecialchars(t('item.image')) ?>' + '</div>'">
                     <?php else: ?>
                         <div class="no-image"><?= htmlspecialchars(t('item.image')) ?></div>
                     <?php endif; ?>
@@ -216,7 +219,7 @@ require_once 'includes/header.php';
                     <?php if (!empty($item['review'])): ?>
                         <p class="media-review">
                             <?= nl2br(htmlspecialchars(mb_strimwidth($item['review'], 0, 80, "..."))) ?>
-                            <br><span style="color: var(--primary); font-size: 0.8rem; font-weight: bold;"><?= htmlspecialchars(t('user_collection.read_more')) ?></span>
+                            <br><span style="color: var(--primary); font-size: 0.8rem; font-weight: bold;"><?= html_entity_decode(t('user_collection.read_more'), ENT_QUOTES | ENT_HTML5, 'UTF-8') ?></span>
                         </p>
                     <?php endif; ?>
                 </div>
