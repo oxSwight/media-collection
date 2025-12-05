@@ -49,11 +49,14 @@ if ($nextMonth > 12) {
     $nextYear++;
 }
 
-$monthNames = [
-    1 => 'Январь', 2 => 'Февраль', 3 => 'Март', 4 => 'Апрель',
-    5 => 'Май', 6 => 'Июнь', 7 => 'Июль', 8 => 'Август',
-    9 => 'Сентябрь', 10 => 'Октябрь', 11 => 'Ноябрь', 12 => 'Декабрь'
-];
+// Получаем названия месяцев из переводов
+$monthNames = [];
+for ($i = 1; $i <= 12; $i++) {
+    $monthKey = "calendar.months.$i";
+    $monthName = t($monthKey);
+    // Если функция вернула сам ключ (перевод не найден), используем номер месяца
+    $monthNames[$i] = ($monthName === $monthKey) ? $i : $monthName;
+}
 
 require_once 'includes/header.php';
 ?>
@@ -72,7 +75,7 @@ require_once 'includes/header.php';
 
     <?php if (empty($releasesByDate)): ?>
         <div class="empty-state">
-            <p><?= htmlspecialchars(t('calendar.no_releases') ?? 'Нет релизов в этом месяце') ?></p>
+            <p><?= htmlspecialchars(t('calendar.no_releases')) ?></p>
         </div>
     <?php else: ?>
         <div style="display: grid; gap: 20px;">
@@ -97,7 +100,7 @@ require_once 'includes/header.php';
                                         <?= csrf_input(); ?>
                                         <input type="hidden" name="upcoming_id" value="<?= (int)$release['id'] ?>">
                                         <button type="submit" class="afisha-add-btn" style="font-size: 0.8rem; padding: 8px;">
-                                            + Добавить
+                                            + <?= htmlspecialchars(t('calendar.add')) ?>
                                         </button>
                                     </form>
                                 </div>
