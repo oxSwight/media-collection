@@ -823,7 +823,9 @@ body {
 
 /* 🔥 PRZYCISK "+ DODAJ" Z GRADIENTEM 🔥 */
 
-a[href="add_item.php"] {
+a[href="add_item.php"],
+.nav-links a[href="add_item.php"],
+.header-actions a[href="add_item.php"] {
     background: linear-gradient(to right, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%) !important;
     color: white !important;
     padding: 10px 24px !important;
@@ -840,6 +842,8 @@ a[href="add_item.php"] {
     border: 0 !important;
     border-width: 0 !important;
     border-style: none !important;
+    border-color: transparent !important;
+    outline: none !important;
     text-decoration: none;
     box-sizing: border-box !important;
     /* Naprawa renderowania - używamy will-change i transform */
@@ -848,11 +852,17 @@ a[href="add_item.php"] {
     -webkit-transform: translateZ(0);
 }
 
-a[href="add_item.php"]:hover {
+a[href="add_item.php"]:hover,
+.nav-links a[href="add_item.php"]:hover,
+.header-actions a[href="add_item.php"]:hover {
     transform: translateY(-3px) scale(1.05) translateZ(0);
     -webkit-transform: translateY(-3px) scale(1.05) translateZ(0);
     box-shadow: 0 8px 25px rgba(253, 121, 168, 0.5);
     background: linear-gradient(to right, #fd79a8 0%, #a29bfe 50%, #6c5ce7 100%) !important;
+    border: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
 }
 
 
