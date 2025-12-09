@@ -31,23 +31,23 @@ if ($myId) {
 <html lang="<?= htmlspecialchars($currentLang) ?>">
 <head>
     <meta charset="UTF-8">
-    <!-- Важный тег для мобильной адаптивности -->
+    <!-- Ważny tag dla responsywności mobilnej -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token()) ?>">
     <title><?= htmlspecialchars(t('site.title')) ?></title>
     <link rel="stylesheet" href="/assets/css/style.css?v=2.1">
     <script>
-        // Улучшенная система управления темой
+        // Ulepszony system zarządzania motywem
         (function() {
             'use strict';
             
-            // Функция для безопасной работы с localStorage
+            // Funkcja do bezpiecznej pracy z localStorage
             const storage = {
                 get: function(key) {
                     try {
                         return localStorage.getItem(key);
                     } catch (e) {
-                        console.warn('localStorage недоступен:', e);
+                        console.warn('localStorage niedostępny:', e);
                         return null;
                     }
                 },
@@ -56,13 +56,13 @@ if ($myId) {
                         localStorage.setItem(key, value);
                         return true;
                     } catch (e) {
-                        console.warn('Не удалось сохранить в localStorage:', e);
+                        console.warn('Nie udało się zapisać w localStorage:', e);
                         return false;
                     }
                 }
             };
             
-            // Функция применения темы
+            // Funkcja zastosowania motywu
             function applyTheme(isDark) {
                 const root = document.documentElement;
                 if (isDark) {
@@ -72,7 +72,7 @@ if ($myId) {
                 }
             }
             
-            // Функция синхронизации checkbox с темой
+            // Funkcja synchronizacji checkbox z motywem
             function syncCheckbox() {
                 const checkbox = document.getElementById('theme-toggle');
                 if (checkbox) {
@@ -81,25 +81,25 @@ if ($myId) {
                 }
             }
             
-            // Инициализация темы при загрузке страницы (до рендеринга)
+            // Inicjalizacja motywu przy ładowaniu strony (przed renderowaniem)
             const savedTheme = storage.get('theme');
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             
-            // Приоритет: сохраненная тема > системная настройка > светлая
+            // Priorytet: zapisany motyw > ustawienie systemowe > jasny
             if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                 applyTheme(true);
             } else {
                 applyTheme(false);
             }
             
-            // Синхронизация checkbox после загрузки DOM
+            // Synchronizacja checkbox po załadowaniu DOM
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', syncCheckbox);
             } else {
                 syncCheckbox();
             }
             
-            // Глобальная функция переключения темы
+            // Globalna funkcja przełączania motywu
             window.toggleTheme = function() {
                 const root = document.documentElement;
                 const isDark = root.classList.contains('dark-theme');
@@ -109,14 +109,14 @@ if ($myId) {
                 syncCheckbox();
                 storage.set('theme', newIsDark ? 'dark' : 'light');
                 
-                // Дополнительная проверка синхронизации через небольшую задержку
+                // Dodatkowa weryfikacja synchronizacji przez małe opóźnienie
                 setTimeout(syncCheckbox, 100);
             };
             
-            // Слушаем изменения системной темы (опционально)
+            // Nasłuchujemy zmian motywu systemowego (opcjonalnie)
             if (window.matchMedia) {
                 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-                    // Применяем только если пользователь не сохранил свою тему
+                    // Zastosowujemy tylko jeśli użytkownik nie zapisał swojego motywu
                     if (!storage.get('theme')) {
                         applyTheme(e.matches);
                         syncCheckbox();
@@ -127,7 +127,7 @@ if ($myId) {
         
         window.csrfToken = <?= json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
         
-        // Функция переключения мобильного меню
+        // Funkcja przełączania menu mobilnego
         function toggleMobileMenu() {
             const navLinks = document.getElementById('navLinks');
             const toggle = document.querySelector('.mobile-menu-toggle');
@@ -139,7 +139,7 @@ if ($myId) {
             }
         }
         
-        // Закрываем меню при клике вне его
+        // Zamykamy menu przy kliknięciu poza nim
         document.addEventListener('click', function(event) {
             const nav = document.querySelector('.navbar');
             const navLinks = document.getElementById('navLinks');
@@ -174,18 +174,18 @@ if ($myId) {
                             </label>
                         </div>
                     </li>
-                    <!-- Лента активности -->
+                    <!-- Wpis aktywności -->
                     <li><a href="activity.php" class="<?= $currentPage === 'activity.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.activity')) ?>"><?= htmlspecialchars(t('nav.activity')) ?></a></li>
-                    <!-- Аналитика -->
+                    <!-- Analiza -->
                     <li><a href="analytics.php" class="<?= $currentPage === 'analytics.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.analytics')) ?>"><?= htmlspecialchars(t('nav.analytics')) ?></a></li>
-                    <!-- Список желаний -->
+                    <!-- Lista życzeń -->
                     <li><a href="watchlist.php" class="<?= $currentPage === 'watchlist.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.watchlist')) ?>"><?= htmlspecialchars(t('nav.watchlist')) ?></a></li>
-                    <!-- Календарь релизов -->
+                    <!-- Kalendarz premier -->
                     <li><a href="releases_calendar.php" class="<?= $currentPage === 'releases_calendar.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.calendar')) ?>"><?= htmlspecialchars(t('nav.calendar')) ?></a></li>
-                    <!-- Афиша (видят все залогиненные) -->
+                    <!-- Afisza (widzą wszyscy zalogowani) -->
                     <li><a href="afisha.php" class="<?= $currentPage === 'afisha.php' ? 'nav-active' : '' ?>" aria-label="<?= htmlspecialchars(t('nav.afisha')) ?>"><?= htmlspecialchars(t('nav.afisha')) ?></a></li>
 
-                    <!-- Друзья (видят все) -->
+                    <!-- Znajomi (widzą wszyscy) -->
                     <li>
                         <a href="friends.php" class="<?= $currentPage === 'friends.php' ? 'nav-active' : '' ?>" style="position: relative;">
                             <?= htmlspecialchars(t('nav.friends')) ?>
@@ -195,24 +195,24 @@ if ($myId) {
                         </a>
                     </li>
                     
-                    <!-- Сообщество (ВИДИТ ТОЛЬКО АДМИН) -->
+                    <!-- Społeczność (WIDZI TYLKO ADMIN) -->
                     <?php if ($isAdmin): ?>
                         <li><a href="community.php" class="<?= $currentPage === 'community.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.community')) ?></a></li>
                     <?php endif; ?>
 
-                    <!-- Кнопка добавления -->
+                    <!-- Przycisk dodawania -->
                     <li><a href="add_item.php" class="<?= $currentPage === 'add_item.php' ? 'nav-active' : '' ?>"><?= htmlspecialchars(t('nav.add')) ?></a></li>
                     
-                    <!-- Кнопка Админа (только для админа) -->
+                    <!-- Przycisk Admina (tylko dla admina) -->
                     <?php if ($isAdmin): ?>
-                        <li><a href="admin.php" class="<?= $currentPage === 'admin.php' ? 'nav-active' : '' ?>" style="color: #e17055;"><?= htmlspecialchars(t('nav.admin')) ?></a></li>
+                        <li class="admin-menu-item"><a href="admin.php" class="<?= $currentPage === 'admin.php' ? 'nav-active' : '' ?>" style="color: #e17055;"><?= htmlspecialchars(t('nav.admin')) ?></a></li>
                     <?php endif; ?>
                     
-                    <!-- Переключатель языка -->
+                    <!-- Przełącznik języka -->
                     <li class="lang-switcher">
                         <form method="GET" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" style="margin:0; display:flex; align-items:center; gap:5px;">
                             <?php
-                            // Сохраняем все текущие GET-параметры, кроме lang
+                            // Zapisujemy wszystkie aktualne parametry GET, oprócz lang
                             foreach ($_GET as $key => $value) {
                                 if ($key === 'lang') continue;
                                 if (is_array($value)) continue;
@@ -227,7 +227,7 @@ if ($myId) {
                         </form>
                     </li>
                     
-                    <!-- Профиль пользователя -->
+                    <!-- Profil użytkownika -->
                     <li>
                         <a href="profile.php" class="<?= $currentPage === 'profile.php' ? 'nav-active' : '' ?>" style="display: flex; align-items: center;">
                             <?php if ($avatarUrl): ?>
@@ -237,7 +237,7 @@ if ($myId) {
                                     <?= htmlspecialchars(strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1))) ?>
                                 </div>
                             <?php endif; ?>
-                            <!-- Обрезаем имя, если оно слишком длинное, чтобы не ломать меню на телефоне -->
+                            <!-- Obcinamy imię, jeśli jest zbyt długie, aby nie łamać menu na telefonie -->
                             <span style="max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 <?= htmlspecialchars($_SESSION['username'] ?? 'User') ?>
                             </span>
@@ -254,7 +254,7 @@ if ($myId) {
                     </li>
 
                 <?php else: ?>
-                    <!-- Меню для гостей -->
+                    <!-- Menu dla gości -->
                     <li class="lang-switcher">
                         <form method="GET" action="<?= htmlspecialchars(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) ?>" style="margin:0; display:flex; align-items:center; gap:5px;">
                             <?php

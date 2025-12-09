@@ -53,6 +53,7 @@ try {
     if ($exists) {
         $stmt = $pdo->prepare("DELETE FROM likes WHERE user_id = ? AND media_id = ?");
         $stmt->execute([$userId, $mediaId]);
+        
         $action = 'unliked';
     } else {
         $stmt = $pdo->prepare("INSERT INTO likes (user_id, media_id) VALUES (?, ?)");

@@ -248,5 +248,17 @@ return [
         'data' => 'Import Data (CSV format)',
         'submit' => 'Import',
     ],
+    'comments' => [
+        'add_comment' => 'Add comment',
+        'write_comment' => 'Write a comment...',
+        'submit' => 'Submit',
+        'no_comments' => 'No comments',
+        'comments_count' => 'Comments',
+        'delete' => 'Delete',
+        'delete_confirm' => 'Delete comment?',
+        'added' => 'Comment added!',
+        'deleted' => 'Comment deleted!',
+        'error' => 'Error adding comment',
+    ],
 ];
 

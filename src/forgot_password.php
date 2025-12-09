@@ -13,25 +13,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Nieprawidłowy format email.";
     } else {
-        // Проверяем, есть ли такой пользователь
+        // Sprawdzamy, czy istnieje taki użytkownik
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         
         if ($stmt->rowCount() > 0) {
-            // Генерируем токен (32 символа)
+            // Generujemy token (32 znaki)
             $token = bin2hex(random_bytes(16));
-            // Время жизни: сейчас + 1 час
-            // В PostgreSQL синтаксис: NOW() + INTERVAL '1 hour'
+            // Czas życia: teraz + 1 godzina
+            // W PostgreSQL składnia: NOW() + INTERVAL '1 hour'
             
             $update = $pdo->prepare("UPDATE users SET reset_token = ?, reset_expires = NOW() + INTERVAL '1 hour' WHERE email = ?");
             $update->execute([$token, $email]);
 
-            // Формируем ссылку для сброса пароля
+            // Tworzymy link do resetu hasła
             $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
             $resetLink = $protocol . '://' . $host . '/reset_password.php?token=' . $token;
             
-            // Подготавливаем письмо
+            // Przygotowujemy wiadomość
             $subject = t('email.reset_password_subject');
             $htmlBody = '
             <!DOCTYPE html>
@@ -72,8 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         t('email.reset_password_expires') . "\n\n" .
                         t('email.reset_password_footer');
             
-            // Отправляем письмо
+            // Wysyłamy wiadomość
             $result = send_email($email, $subject, $htmlBody, $textBody);
+            
+            // Logujemy wynik do debugowania
+            error_log("Password reset email send attempt to: $email, success: " . ($result['success'] ? 'yes' : 'no') . ", error: " . ($result['error'] ?? 'none'));
             
             if ($result['success']) {
                 $message = '<div style="background: #55efc4; color: #00b894; padding: 15px; border-radius: 5px; text-align: center;">
@@ -81,13 +84,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ' . htmlspecialchars(t('email.reset_password_check')) . '
                 </div>';
             } else {
-                // Если отправка не удалась
+                // Jeśli wysyłka nie powiodła się
                 $errorMsg = $result['error'] ?? 'Unknown error';
                 
-                // Проверяем, это ошибка верификации SendGrid?
-                $isSendGridVerificationError = (strpos($errorMsg, 'verified Sender Identity') !== false || strpos($errorMsg, 'HTTP 403') !== false);
+                // Sprawdzamy, czy to błąd weryfikacji SendGrid?
+                $isSendGridVerificationError = (stripos($errorMsg, 'verified Sender Identity') !== false || 
+                                                stripos($errorMsg, 'HTTP 403') !== false ||
+                                                stripos($errorMsg, 'sender authentication') !== false ||
+                                                stripos($errorMsg, 'unverified') !== false);
                 
-                // В режиме разработки показываем ссылку напрямую
+                // Sprawdzamy, czy jest klucz API
+                $hasSendGridKey = !empty(getenv('SENDGRID_API_KEY'));
+                $hasSMTPConfig = !empty(getenv('SMTP_HOST')) && !empty(getenv('SMTP_USER')) && !empty(getenv('SMTP_PASS'));
+                
+                // W trybie deweloperskim pokazujemy link bezpośrednio
                 if (getenv('APP_ENV') === 'development' || strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false) {
                     $message = '
                     <div style="background: #ffeaa7; padding: 15px; border-radius: 5px; border-left: 5px solid #fdcb6e;">
@@ -97,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <small style="color: #636e72;">Na produkcji (Render) po skonfigurowaniu SendGrid API email będzie wysyłany automatycznie.</small>
                     </div>';
                 } elseif ($isSendGridVerificationError) {
-                    // Специальное сообщение для ошибки верификации SendGrid
+                    // Specjalna wiadomość dla błędu weryfikacji SendGrid
                     $error = '<div style="background: #fab1a0; color: #d63031; padding: 15px; border-radius: 5px; border-left: 5px solid #e17055;">
                         <strong>⚠️ SendGrid wymaga weryfikacji nadawcy:</strong><br>
                         Adres email nadawcy (' . htmlspecialchars(getenv('SENDGRID_FROM_EMAIL') ?: 'noreply@medialib.app') . ') nie jest zweryfikowany w SendGrid.<br><br>
@@ -109,13 +119,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         5. Potwierdź email (otrzymasz wiadomość weryfikacyjną)<br><br>
                         <small>Po weryfikacji email będzie działał automatycznie.</small>
                     </div>';
+                } elseif (!$hasSendGridKey && !$hasSMTPConfig) {
+                    // Brak konfiguracji email
+                    $error = '<div style="background: #fab1a0; color: #d63031; padding: 15px; border-radius: 5px; border-left: 5px solid #e17055;">
+                        <strong>⚠️ Email nie jest skonfigurowany:</strong><br>
+                        Brak konfiguracji SendGrid API Key lub SMTP. Skontaktuj się z administratorem.<br><br>
+                        <small>W trybie deweloperskim link resetu hasła jest wyświetlany bezpośrednio.</small>
+                    </div>';
                 } else {
-                    // Другие ошибки - показываем общее сообщение (безопасность)
-                    $error = t('email.reset_password_error') . ': ' . htmlspecialchars($errorMsg);
+                    // Inne błędy - pokazujemy szczegółową wiadomość dla admina, ogólną dla użytkownika
+                    $error = '<div style="background: #fab1a0; color: #d63031; padding: 15px; border-radius: 5px; border-left: 5px solid #e17055;">
+                        <strong>⚠️ ' . htmlspecialchars(t('email.reset_password_error')) . '</strong><br>
+                        ' . htmlspecialchars(substr($errorMsg, 0, 200)) . '<br><br>
+                        <small>Skontaktuj się z administratorem lub spróbuj ponownie później.</small>
+                    </div>';
                 }
             }
         } else {
-            // В целях безопасности всегда показываем одно и то же сообщение
+            // Ze względów bezpieczeństwa zawsze pokazujemy tę samą wiadomość
             $message = '<div style="background: #55efc4; color: #00b894; padding: 15px; border-radius: 5px; text-align: center;">
                 <strong>✅ ' . htmlspecialchars(t('email.reset_password_sent')) . '</strong><br>
                 ' . htmlspecialchars(t('email.reset_password_check')) . '

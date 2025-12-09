@@ -1,58 +1,58 @@
 <?php
 // src/includes/email.php
-// Функции для отправки email
+// Funkcje do wysyłania email
 
 /**
- * Отправка email через SMTP API (SendGrid) или встроенный mail()
+ * Wysyłanie email przez SMTP API (SendGrid) lub wbudowany mail()
  * 
- * @param string $to Email получателя
- * @param string $subject Тема письма
- * @param string $body HTML тело письма
- * @param string $textBody Текстовая версия (опционально)
+ * @param string $to Email odbiorcy
+ * @param string $subject Temat wiadomości
+ * @param string $body HTML treść wiadomości
+ * @param string $textBody Wersja tekstowa (opcjonalnie)
  * @return array ['success' => bool, 'error' => string|null]
  */
 function send_email(string $to, string $subject, string $body, string $textBody = ''): array
 {
-    // Вариант 1: SendGrid API (если задан SENDGRID_API_KEY)
+    // Opcja 1: SendGrid API (jeśli ustawiony SENDGRID_API_KEY)
     $sendgridKey = getenv('SENDGRID_API_KEY');
     if ($sendgridKey) {
         return send_email_sendgrid($to, $subject, $body, $textBody, $sendgridKey);
     }
     
-    // Вариант 2: Gmail SMTP (если заданы SMTP настройки)
+    // Opcja 2: Gmail SMTP (jeśli ustawione ustawienia SMTP)
     $smtpHost = getenv('SMTP_HOST');
     if ($smtpHost) {
         return send_email_smtp($to, $subject, $body, $textBody);
     }
     
-    // Вариант 3: Встроенный mail() PHP (fallback, может не работать на Render)
+    // Opcja 3: Wbudowany mail() PHP (fallback, może nie działać na Render)
     return send_email_mail($to, $subject, $body, $textBody);
 }
 
 /**
- * Отправка через SendGrid API
+ * Wysyłanie przez SendGrid API
  */
 function send_email_sendgrid(string $to, string $subject, string $body, string $textBody, string $apiKey): array
 {
-    // Для SendGrid можно использовать любой email, но лучше верифицированный
-    // Если не задан, используем email получателя как fallback (но это не идеально)
+    // Dla SendGrid można użyć dowolnego email, ale lepiej zweryfikowany
+    // Jeśli nie ustawiony, używamy email odbiorcy jako fallback (ale to nie idealne)
     $fromEmail = getenv('SENDGRID_FROM_EMAIL');
     if (empty($fromEmail)) {
-        // Если не задан, можно использовать email получателя (но лучше задать в переменных окружения)
-        $fromEmail = 'noreply@sendgrid.net'; // SendGrid позволяет использовать этот домен без верификации (но письма могут попадать в спам)
+        // Jeśli nie ustawiony, można użyć email odbiorcy (ale lepiej ustawić w zmiennych środowiskowych)
+        $fromEmail = 'noreply@sendgrid.net'; // SendGrid pozwala używać tej domeny bez weryfikacji (ale wiadomości mogą trafiać do spamu)
     }
     $fromName = getenv('SENDGRID_FROM_NAME') ?: 'MediaLib';
     
-    // SendGrid требует: сначала text/plain, потом text/html (и text/plain должен быть всегда)
-    // Если textBody пустой, создаем простую текстовую версию из HTML
+    // SendGrid wymaga: najpierw text/plain, potem text/html (i text/plain musi być zawsze)
+    // Jeśli textBody pusty, tworzymy prostą wersję tekstową z HTML
     if (empty(trim($textBody))) {
         $textBody = strip_tags($body);
         $textBody = html_entity_decode($textBody, ENT_QUOTES, 'UTF-8');
-        $textBody = preg_replace('/\s+/', ' ', $textBody); // Убираем лишние пробелы
+        $textBody = preg_replace('/\s+/', ' ', $textBody); // Usuwamy zbędne spacje
         $textBody = trim($textBody);
     }
     
-    // ВАЖНО: порядок должен быть строго text/plain ПЕРВЫМ, text/html ВТОРЫМ
+    // WAŻNE: kolejność musi być ściśle text/plain PIERWSZY, text/html DRUGI
     $content = [
         [
             'type' => 'text/plain',
@@ -96,6 +96,7 @@ function send_email_sendgrid(string $to, string $subject, string $body, string $
     curl_close($ch);
     
     if ($error) {
+        error_log("SendGrid CURL error: " . $error);
         return ['success' => false, 'error' => 'SMTP error: ' . $error];
     }
     
@@ -103,11 +104,19 @@ function send_email_sendgrid(string $to, string $subject, string $body, string $
         return ['success' => true, 'error' => null];
     }
     
-    return ['success' => false, 'error' => 'SendGrid API error: HTTP ' . $httpCode . ($response ? ': ' . substr($response, 0, 200) : '')];
+    // Logujemy pełną odpowiedź do debugowania
+    $errorMsg = 'SendGrid API error: HTTP ' . $httpCode;
+    if ($response) {
+        $errorMsg .= ': ' . substr($response, 0, 500);
+        error_log("SendGrid API error response: " . $response);
+    }
+    error_log("SendGrid API error: HTTP $httpCode");
+    
+    return ['success' => false, 'error' => $errorMsg];
 }
 
 /**
- * Отправка через SMTP (Gmail и другие)
+ * Wysyłanie przez SMTP (Gmail i inne)
  */
 function send_email_smtp(string $to, string $subject, string $body, string $textBody): array
 {
@@ -122,8 +131,8 @@ function send_email_smtp(string $to, string $subject, string $body, string $text
         return ['success' => false, 'error' => 'SMTP credentials not configured'];
     }
     
-    // Используем встроенный mail() с дополнительными заголовками
-    // Для полноценного SMTP нужна библиотека типа PHPMailer, но для простоты используем mail()
+    // Używamy wbudowanego mail() z dodatkowymi nagłówkami
+    // Dla pełnego SMTP potrzebna jest biblioteka typu PHPMailer, ale dla prostoty używamy mail()
     $headers = [
         'From: ' . $smtpFromName . ' <' . $smtpFrom . '>',
         'Reply-To: ' . $smtpFrom,
@@ -142,7 +151,7 @@ function send_email_smtp(string $to, string $subject, string $body, string $text
 }
 
 /**
- * Отправка через встроенный mail() PHP (fallback)
+ * Wysyłanie przez wbudowany mail() PHP (fallback)
  */
 function send_email_mail(string $to, string $subject, string $body, string $textBody): array
 {
@@ -163,6 +172,6 @@ function send_email_mail(string $to, string $subject, string $body, string $text
         return ['success' => true, 'error' => null];
     }
     
-    return ['success' => false, 'error' => 'mail() function failed - возможно, на сервере не настроена отправка email'];
+    return ['success' => false, 'error' => 'mail() function failed - możliwe, że na serwerze nie jest skonfigurowana wysyłka email'];
 }
 

@@ -248,5 +248,17 @@ return [
         'data' => 'Dane do importu (format CSV)',
         'submit' => 'Importuj',
     ],
+    'comments' => [
+        'add_comment' => 'Dodaj komentarz',
+        'write_comment' => 'Napisz komentarz...',
+        'submit' => 'Wyślij',
+        'no_comments' => 'Brak komentarzy',
+        'comments_count' => 'Komentarze',
+        'delete' => 'Usuń',
+        'delete_confirm' => 'Usunąć komentarz?',
+        'added' => 'Komentarz dodany!',
+        'deleted' => 'Komentarz usunięty!',
+        'error' => 'Błąd podczas dodawania komentarza',
+    ],
 ];
 
