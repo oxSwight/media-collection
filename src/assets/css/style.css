@@ -821,7 +821,7 @@ body {
 }
 
 
-/* 🔥 PRZYCISK "+ DODAJ" Z GRADIENTEM 🔥 */
+/*  PRZYCISK "+ DODAJ" Z GRADIENTEM  */
 
 a[href="add_item.php"],
 .nav-links a[href="add_item.php"],
@@ -839,10 +839,10 @@ a[href="add_item.php"],
     text-transform: uppercase;
     font-size: 0.85rem !important;
     letter-spacing: 0.5px;
-    border: 0 !important;
+    /* border: 0 !important;
     border-width: 0 !important;
     border-style: none !important;
-    border-color: transparent !important;
+    border-color: transparent !important; */
     outline: none !important;
     text-decoration: none;
     box-sizing: border-box !important;
@@ -859,10 +859,10 @@ a[href="add_item.php"]:hover,
     -webkit-transform: translateY(-3px) scale(1.05) translateZ(0);
     box-shadow: 0 8px 25px rgba(253, 121, 168, 0.5);
     background: linear-gradient(to right, #fd79a8 0%, #a29bfe 50%, #6c5ce7 100%) !important;
-    border: 0 !important;
+    /* border: 0 !important;
     border-width: 0 !important;
     border-style: none !important;
-    border-color: transparent !important;
+    border-color: transparent !important; */
 }
 
 

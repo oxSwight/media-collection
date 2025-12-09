@@ -18,6 +18,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Rate limiting: 30 запросов в минуту для API
+
 $rateLimitError = enforceRateLimit(30, 60);
 if ($rateLimitError) {
     echo json_encode($rateLimitError);
