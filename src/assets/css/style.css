@@ -837,7 +837,9 @@ a[href="add_item.php"] {
     text-transform: uppercase;
     font-size: 0.85rem !important;
     letter-spacing: 0.5px;
-    border: none !important;
+    border: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
     text-decoration: none;
     box-sizing: border-box !important;
     /* Naprawa renderowania - używamy will-change i transform */
