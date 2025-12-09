@@ -824,10 +824,7 @@ body {
 /* 🔥 PRZYCISK "+ DODAJ" Z GRADIENTEM 🔥 */
 
 a[href="add_item.php"] {
-    background: linear-gradient(135deg, #6c5ce7 0%, #fd79a8 100%) !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
+    position: relative;
     color: white !important;
     padding: 10px 24px !important;
     border-radius: 50px !important;
@@ -842,25 +839,38 @@ a[href="add_item.php"] {
     letter-spacing: 0.5px;
     border: none !important;
     text-decoration: none;
-    position: relative;
     overflow: hidden !important;
-    /* Wymuszamy poprawne renderowanie gradientu */
-    -webkit-background-clip: padding-box;
-    background-clip: padding-box;
-    /* Hardware acceleration dla płynnego renderowania */
+    /* Tworzymy wrapper dla gradientu */
+    background: transparent !important;
+    z-index: 1;
+}
+
+/* Gradient jako pseudo-element - większy niż kontener dla poprawnego obcięcia */
+a[href="add_item.php"]::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 30%, #fd79a8 70%, #fd79a8 100%);
+    border-radius: 50px;
+    z-index: -1;
+    /* Wymuszamy poprawne renderowanie */
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
-    will-change: transform, background;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 a[href="add_item.php"]:hover {
     transform: translateY(-3px) scale(1.05) translateZ(0);
     -webkit-transform: translateY(-3px) scale(1.05) translateZ(0);
     box-shadow: 0 8px 25px rgba(253, 121, 168, 0.5);
-    background: linear-gradient(135deg, #fd79a8 0%, #6c5ce7 100%) !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
+}
+
+a[href="add_item.php"]:hover::before {
+    background: linear-gradient(135deg, #fd79a8 0%, #fd79a8 30%, #a29bfe 70%, #6c5ce7 100%);
 }
 
 
