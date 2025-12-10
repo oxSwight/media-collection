@@ -60,6 +60,15 @@ try {
         $stmt = $pdo->prepare("INSERT INTO likes (user_id, media_id) VALUES (?, ?)");
         $stmt->execute([$userId, $mediaId]);
         $action = 'liked';
+
+        // Добавляем запись в активности (лайк)
+        try {
+            $actStmt = $pdo->prepare("INSERT INTO activities (user_id, type, media_id, created_at) VALUES (?, 'like', ?, NOW())");
+            $actStmt->execute([$userId, $mediaId]);
+        } catch (PDOException $e) {
+            // не критично, логируем
+            error_log('Activity insert failed: ' . $e->getMessage());
+        }
     }
 
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM likes WHERE media_id = ?");

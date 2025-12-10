@@ -1340,6 +1340,23 @@ a[href="add_item.php"]:hover,
     color: #e17055;
 }
 
+.like-btn-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.like-info-btn {
+    border: 1px solid #dfe6e9;
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    color: #2d3436;
+    transition: all 0.2s ease;
+}
+.like-info-btn:hover {
+    background: #f1f2f6;
+}
 @keyframes pop {
     0% {
         transform: scale(1);
@@ -1381,6 +1398,64 @@ a[href="add_item.php"]:hover,
     object-fit: cover;
     border: 4px solid var(--secondary);
     flex-shrink: 0;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+.profile-avatar-wrapper .avatar-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    text-align: center;
+    padding: 6px 8px;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.profile-avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+}
+.avatar-editor {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+.avatar-preview-frame {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f1f2f6;
+    position: relative;
+}
+.avatar-preview-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.1s linear;
+}
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #636e72;
+}
+.avatar-controls {
+    min-width: 180px;
 }
 
 

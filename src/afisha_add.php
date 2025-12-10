@@ -23,7 +23,7 @@ $tmdbData = null;
 if (!empty($externalId) && is_numeric($externalId)) {
     $apiKey = getenv('TMDB_API_KEY');
     if ($apiKey) {
-        // Выбираем язык для API
+        // Wybieramy język dla API
         $langMap = [
             'pl' => 'pl-PL',
             'ru' => 'ru-RU',
@@ -31,7 +31,7 @@ if (!empty($externalId) && is_numeric($externalId)) {
         ];
         $apiLang = $langMap[$_SESSION['lang'] ?? 'pl'] ?? 'en-US';
         
-        // Запрос к TMDb API для получения детальной информации о фильме
+        // Zapytanie do TMDb API po szczegóły filmu
         $url = sprintf(
             'https://api.themoviedb.org/3/movie/%d?api_key=%s&language=%s',
             (int)$externalId,
@@ -85,6 +85,15 @@ if ($tmdbData && is_array($tmdbData)) {
 } else {
     header('Location: afisha.php');
     exit;
+}
+
+// Если премьера в будущем — запрещаем добавление в библиотеку (только в желания)
+if (!empty($movie['release_date'])) {
+    $releaseTs = strtotime($movie['release_date']);
+    if ($releaseTs !== false && $releaseTs > time()) {
+        header('Location: afisha.php?msg=premiere_only_watchlist');
+        exit;
+    }
 }
 
 // Проверяем, нет ли уже такого названия в коллекции пользователя

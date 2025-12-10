@@ -64,7 +64,7 @@ require_once 'includes/header.php';
                             <?= $u['is_admin'] ? '<span style="color: purple; font-weight: bold;">ADMIN</span>' : 'Użytkownik' ?>
                         </td>
                         <td style="padding: 10px;">
-                            <form method="POST" action="admin_delete_user.php" onsubmit="return confirm('<?= htmlspecialchars(addslashes(t('admin.delete_confirm'))) ?>');">
+                            <form method="POST" action="admin_delete_user.php" onsubmit="return confirmDelete(event, '<?= htmlspecialchars(addslashes(t('admin.delete_confirm'))) ?>');">
                                 <?= csrf_input(); ?>
                                 <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
                                 <button type="submit" style="background: #d63031; color: white; padding: 5px 10px; border: none; border-radius: 5px; font-size: 0.8rem; cursor: pointer;">

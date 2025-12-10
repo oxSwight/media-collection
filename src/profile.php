@@ -53,6 +53,11 @@ $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
+// Убедимся, что аватар не потерян (восстановим из backup при наличии)
+if (!empty($user['avatar_path']) && !ensure_upload_exists($user['avatar_path'])) {
+    $user['avatar_path'] = null;
+}
+
 $statsStmt = $pdo->prepare("
     SELECT 
         COUNT(*) as total,
@@ -67,13 +72,16 @@ require_once 'includes/header.php';
 ?>
 
 <div class="profile-header">
-    <?php if ($user['avatar_path']): ?>
-        <img src="<?= htmlspecialchars($user['avatar_path']) ?>" alt="Avatar" class="profile-avatar-large">
-    <?php else: ?>
-        <div class="profile-avatar-large" style="background: #dfe6e9; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
-            <?= htmlspecialchars(strtoupper(substr($user['username'], 0, 1))) ?>
-        </div>
-    <?php endif; ?>
+    <div class="profile-avatar-wrapper" id="avatarWrapper" onclick="triggerAvatarSelect()">
+        <?php if ($user['avatar_path']): ?>
+            <img id="avatarPreview" src="<?= htmlspecialchars($user['avatar_path']) ?>" alt="Avatar" class="profile-avatar-large">
+        <?php else: ?>
+            <div id="avatarPreview" class="profile-avatar-large" style="background: #dfe6e9; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+                <?= htmlspecialchars(strtoupper(substr($user['username'], 0, 1))) ?>
+            </div>
+        <?php endif; ?>
+        <div class="avatar-overlay"><?= htmlspecialchars(t('profile.change_avatar') ?? 'Zmień zdjęcie') ?></div>
+    </div>
     
     <div class="profile-info">
         <h1><?= htmlspecialchars($user['username']) ?></h1>
@@ -108,7 +116,22 @@ require_once 'includes/header.php';
         
         <div class="form-group">
             <label><?= htmlspecialchars(t('profile.avatar')) ?></label>
-            <input type="file" name="avatar" accept="image/*">
+            <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none;">
+            <div class="avatar-editor">
+                <div class="avatar-preview-frame">
+                    <img id="avatarPreviewSmall" src="<?= htmlspecialchars($user['avatar_path'] ?: '') ?>" alt="" style="display: <?= $user['avatar_path'] ? 'block' : 'none' ?>;">
+                    <?php if (!$user['avatar_path']): ?>
+                        <div id="avatarPreviewPlaceholder" class="avatar-placeholder"><?= htmlspecialchars(strtoupper(substr($user['username'], 0, 1))) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="avatar-controls">
+                    <label style="display:block; font-size: 0.9rem;"><?= htmlspecialchars(t('profile.zoom') ?? 'Powiększenie') ?></label>
+                    <input type="range" id="avatarZoom" min="1" max="2.5" step="0.01" value="1">
+                    <label style="display:block; font-size: 0.9rem; margin-top:8px;"><?= htmlspecialchars(t('profile.rotate') ?? 'Obrót') ?></label>
+                    <input type="range" id="avatarRotate" min="-15" max="15" step="0.5" value="0">
+                </div>
+            </div>
+            <small style="color:#636e72; display:block; margin-top:6px;"><?= htmlspecialchars(t('profile.avatar_hint') ?? 'Kliknij na avatar lub ramkę, aby wybrać zdjęcie. Przeciągaj obraz w ramce, użyj suwaków powiększenia i obrotu do podglądu. Zapisywany jest oryginalny plik.') ?></small>
         </div>
         
         <div class="form-group">
@@ -134,5 +157,102 @@ require_once 'includes/header.php';
         <button type="submit" class="btn-submit" style="width: auto;"><?= htmlspecialchars(t('item.save_changes')) ?></button>
     </form>
 </div>
+
+<script>
+// Avatar select via click
+function triggerAvatarSelect() {
+    const input = document.getElementById('avatarInput');
+    if (input) input.click();
+}
+
+(function setupAvatarEditor() {
+    const input = document.getElementById('avatarInput');
+    const previewMain = document.getElementById('avatarPreview');
+    const previewSmall = document.getElementById('avatarPreviewSmall');
+    const placeholder = document.getElementById('avatarPreviewPlaceholder');
+    const zoom = document.getElementById('avatarZoom');
+    const rotate = document.getElementById('avatarRotate');
+    let offsetX = 0;
+    let offsetY = 0;
+    let startX = 0;
+    let startY = 0;
+    let dragging = false;
+
+    function applyTransform() {
+        const scale = parseFloat(zoom?.value || '1');
+        const rot = parseFloat(rotate?.value || '0');
+        const transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale}) rotate(${rot}deg)`;
+        if (previewSmall) previewSmall.style.transform = transform;
+        if (previewMain && previewMain.tagName === 'IMG') previewMain.style.transform = transform;
+    }
+
+    function setImage(src) {
+        if (previewSmall) {
+            previewSmall.src = src;
+            previewSmall.style.display = 'block';
+        }
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+        if (previewMain && previewMain.tagName === 'IMG') {
+            previewMain.src = src;
+        }
+        offsetX = 0; offsetY = 0;
+        if (zoom) zoom.value = '1';
+        if (rotate) rotate.value = '0';
+        applyTransform();
+    }
+
+    if (input) {
+        input.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('Wybierz plik graficzny.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                setImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (zoom) zoom.addEventListener('input', applyTransform);
+    if (rotate) rotate.addEventListener('input', applyTransform);
+
+    const frame = document.querySelector('.avatar-preview-frame');
+    if (frame) {
+        frame.addEventListener('mousedown', (e) => {
+            dragging = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+            e.preventDefault();
+        });
+        frame.addEventListener('touchstart', (e) => {
+            dragging = true;
+            const t = e.touches[0];
+            startX = t.clientX - offsetX;
+            startY = t.clientY - offsetY;
+        }, {passive: true});
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            offsetX = e.clientX - startX;
+            offsetY = e.clientY - startY;
+            applyTransform();
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            const t = e.touches[0];
+            offsetX = t.clientX - startX;
+            offsetY = t.clientY - startY;
+            applyTransform();
+        }, {passive: true});
+        window.addEventListener('mouseup', () => dragging = false);
+        window.addEventListener('touchend', () => dragging = false);
+    }
+})();
+</script>
 
 <?php require_once 'includes/footer.php'; ?>

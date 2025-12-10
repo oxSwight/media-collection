@@ -103,6 +103,11 @@ require_once 'includes/header.php';
                                 <span class="activity-action-icon">➕</span>
                                 <span class="activity-action-text"><?= htmlspecialchars(t('activity.add_item')) ?></span>
                             </span>
+                        <?php elseif ($act['type'] === 'like' && $act['title']): ?>
+                            <span class="activity-action-badge activity-action-like">
+                                <span class="activity-action-icon">❤</span>
+                                <span class="activity-action-text"><?= htmlspecialchars(t('activity.like') ?? 'Polubienie') ?></span>
+                            </span>
                         <?php else: ?>
                             <span class="activity-action-badge activity-action-default">
                                 <span class="activity-action-text"><?= htmlspecialchars($act['type'] ?? 'activity') ?></span>
@@ -111,11 +116,11 @@ require_once 'includes/header.php';
                         <span class="activity-time"><?= htmlspecialchars(timeAgo($act['created_at'])) ?></span>
                     </div>
                     
-                    <?php if ($act['type'] === 'add_item' && $act['title']): ?>
+                    <?php if (in_array($act['type'], ['add_item','like'], true) && $act['title']): ?>
                         <div class="activity-media">
                             <div class="activity-media-action-indicator">
                                 <div class="activity-action-pulse"></div>
-                                <span class="activity-action-icon-large">➕</span>
+                                <span class="activity-action-icon-large"><?= $act['type'] === 'like' ? '❤' : '➕' ?></span>
                             </div>
                             
                             <?php if (!empty($act['image_path'])): ?>

@@ -167,30 +167,15 @@ require_once 'includes/header.php';
                 <div class="media-image">
                     <?php 
                     $imagePath = $item['image_path'] ?? '';
-                    // Проверяем, существует ли файл, если это локальный путь
                     $imageExists = false;
                     $imageUrl = $imagePath;
                     
                     if (!empty($imagePath)) {
                         if (strpos($imagePath, 'http') === 0 || strpos($imagePath, 'https') === 0) {
-                            // Это внешний URL - используем как есть
                             $imageExists = true;
-                            $imageUrl = $imagePath;
                         } else {
-                            // Это локальный путь - проверяем существование файла
-                            // Путь в БД хранится как 'uploads/filename.jpg' относительно корня проекта
-                            $projectRoot = dirname(__DIR__);
-                            $fullPath = $projectRoot . '/' . ltrim($imagePath, '/');
-                            $imageExists = file_exists($fullPath);
-                            
-                            // Если файл не найден, пробуем относительно src/
-                            if (!$imageExists) {
-                                $altPath = __DIR__ . '/' . ltrim($imagePath, '/');
-                                $imageExists = file_exists($altPath);
-                            }
-                            
-                            // Формируем URL для браузера (относительно корня сайта)
-                            if ($imageExists) {
+                            if (ensure_upload_exists($imagePath)) {
+                                $imageExists = true;
                                 $imageUrl = '/' . ltrim($imagePath, '/');
                             }
                         }
@@ -204,11 +189,14 @@ require_once 'includes/header.php';
                     <div class="media-rating"><?= htmlspecialchars((string)$item['rating']) ?>/10</div>
 
                     <!-- КНОПКА ЛАЙКА -->
-                    <button class="like-btn <?= $item['is_liked_by_me'] ? 'liked' : '' ?>" 
-                            onclick="toggleLike(event, <?= (int)$item['id'] ?>)">
-                        <span class="like-icon">❤</span> 
-                        <span class="like-count"><?= htmlspecialchars((string)$item['likes_count']) ?></span>
-                    </button>
+                    <div class="like-btn-group">
+                        <button class="like-btn <?= $item['is_liked_by_me'] ? 'liked' : '' ?>" 
+                                onclick="toggleLike(event, <?= (int)$item['id'] ?>)">
+                            <span class="like-icon">❤</span> 
+                            <span class="like-count" data-id="<?= (int)$item['id'] ?>"><?= htmlspecialchars((string)$item['likes_count']) ?></span>
+                        </button>
+                        <button class="like-info-btn" title="<?= htmlspecialchars(t('likes.who_liked') ?? 'Kto polubił?') ?>" onclick="showLikers(event, <?= (int)$item['id'] ?>)">👁</button>
+                    </div>
                 </div>
                 
                 <div class="media-content">
@@ -330,6 +318,36 @@ async function toggleLike(e, mediaId) {
         btn.style.opacity = '1';
         btn.style.cursor = 'pointer';
     }
+}
+
+// Показать список кто лайкнул
+async function showLikers(e, mediaId) {
+    e.stopPropagation();
+    try {
+        const res = await fetch(`api_like_list.php?id=${encodeURIComponent(mediaId)}`, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || 'Błąd');
+            return;
+        }
+        const likers = data.likers || [];
+        if (likers.length === 0) {
+            alert('Brak polubień');
+            return;
+        }
+        const lines = likers.map(l => {
+            const name = l.username || '—';
+            return name;
+        });
+        alert((tLikesWho() + ':\n') + lines.join('\n'));
+    } catch (err) {
+        console.error(err);
+        alert('Błąd');
+    }
+}
+
+function tLikesWho() {
+    return <?= json_encode(t('likes.who_liked') ?? 'Kto polubił') ?>;
 }
 
 // Модальное окно

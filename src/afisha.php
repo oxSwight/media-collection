@@ -37,6 +37,25 @@ foreach ($stmtSeen->fetchAll(PDO::FETCH_COLUMN) as $t) {
     $seenTitles[$t] = true;
 }
 
+// 1a. Собираем то, что уже в списке желаний (по upcoming_id и external_id)
+$watchlistUpcomingIds = [];
+$watchlistExternalIds = [];
+$wlStmt = $pdo->prepare("
+    SELECT w.upcoming_movie_id, um.external_id
+    FROM watchlist w
+    LEFT JOIN upcoming_movies um ON um.id = w.upcoming_movie_id
+    WHERE w.user_id = ?
+");
+$wlStmt->execute([$myId]);
+foreach ($wlStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    if (!empty($row['upcoming_movie_id'])) {
+        $watchlistUpcomingIds[(int)$row['upcoming_movie_id']] = true;
+    }
+    if (!empty($row['external_id'])) {
+        $watchlistExternalIds[(string)$row['external_id']] = true;
+    }
+}
+
 // Если есть поисковый запрос и API ключ - используем прямой поиск в TMDb
 $movies = [];
 $totalItems = 0;
@@ -891,6 +910,14 @@ require_once 'includes/header.php';
 
         <div class="media-grid">
             <?php foreach ($moviesToShow as $movie): ?>
+                <?php
+                    $releaseTs = !empty($movie['release_date']) ? strtotime($movie['release_date']) : null;
+                    $isFuture = $releaseTs !== false && $releaseTs !== null && $releaseTs > time();
+                    $movieTitleLower = mb_strtolower($movie['title'] ?? '');
+                    $inLibrary = $movieTitleLower && isset($seenTitles[$movieTitleLower]);
+                    $inWatchlist = (!empty($movie['id']) && isset($watchlistUpcomingIds[(int)$movie['id']])) ||
+                                   (!empty($movie['external_id']) && isset($watchlistExternalIds[(string)$movie['external_id']]));
+                ?>
                 <div class="media-card"
                      onclick="openAfishaModal(this)"
                      data-title="<?= htmlspecialchars($movie['title']) ?>"
@@ -898,7 +925,9 @@ require_once 'includes/header.php';
                      data-overview="<?= htmlspecialchars($movie['overview'] ?? '') ?>"
                      data-poster="<?= htmlspecialchars($movie['poster_url'] ?? '') ?>"
                      data-release-date="<?= htmlspecialchars($movie['release_date'] ?? '') ?>"
-                     data-vote-average="<?= htmlspecialchars($movie['vote_average'] ?? '') ?>">
+                     data-vote-average="<?= htmlspecialchars($movie['vote_average'] ?? '') ?>"
+                     data-in-watchlist="<?= $inWatchlist ? '1' : '0' ?>"
+                     data-in-library="<?= $inLibrary ? '1' : '0' ?>">
                     <div class="media-image">
                         <?php if (!empty($movie['poster_url'])): ?>
                             <img src="<?= htmlspecialchars($movie['poster_url']) ?>" alt="Poster">
@@ -930,18 +959,25 @@ require_once 'includes/header.php';
                         <?php endif; ?>
 
                         <div class="afisha-buttons-wrapper">
-                            <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
-                                <?= csrf_input(); ?>
-                                <?php if ($useTmdbSearch && !empty($movie['external_id'])): ?>
-                                    <input type="hidden" name="external_id" value="<?= htmlspecialchars($movie['external_id']) ?>">
-                                <?php else: ?>
-                                    <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
-                                <?php endif; ?>
-                                <button type="submit" class="afisha-add-btn">
-                                    <span class="plus-icon">+</span>
-                                    <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
-                                </button>
-                            </form>
+                            <?php if (!$inLibrary && !$isFuture): ?>
+                                <form method="POST" action="afisha_add.php" onsubmit="event.stopPropagation();">
+                                    <?= csrf_input(); ?>
+                                    <?php if ($useTmdbSearch && !empty($movie['external_id'])): ?>
+                                        <input type="hidden" name="external_id" value="<?= htmlspecialchars($movie['external_id']) ?>">
+                                    <?php else: ?>
+                                        <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
+                                    <?php endif; ?>
+                                    <button type="submit" class="afisha-add-btn">
+                                        <span class="plus-icon">+</span>
+                                        <?= htmlspecialchars(t('afisha.add_to_collection')) ?>
+                                    </button>
+                                </form>
+                            <?php elseif ($inLibrary): ?>
+                                <div class="afisha-add-btn" style="background:#dfe6e9; color:#2d3436; cursor: default; justify-content:center;">
+                                    ✔ <?= htmlspecialchars(t('item.in_library') ?? 'W bibliotece') ?>
+                                </div>
+                            <?php endif; ?>
+
                             <form method="POST" action="watchlist.php" onsubmit="return addToWatchlist(event, this);">
                                 <?= csrf_input(); ?>
                                 <input type="hidden" name="add_to_watchlist" value="1">
@@ -951,8 +987,8 @@ require_once 'includes/header.php';
                                     <input type="hidden" name="upcoming_id" value="<?= (int)$movie['id'] ?>">
                                 <?php endif; ?>
                                 <input type="hidden" name="title" value="<?= htmlspecialchars($movie['title']) ?>">
-                                <button type="submit" class="afisha-watchlist-btn">
-                                    ⭐ <?= htmlspecialchars(t('watchlist.add')) ?>
+                                <button type="submit" class="afisha-watchlist-btn" <?= $inWatchlist ? 'disabled' : '' ?> style="<?= $inWatchlist ? 'opacity:0.6; cursor:default;' : '' ?>">
+                                    <?= $inWatchlist ? '✔ ' . htmlspecialchars(t('watchlist.added') ?? 'Na liście życzeń') : '⭐ ' . htmlspecialchars(t('watchlist.add')) ?>
                                 </button>
                             </form>
                         </div>
@@ -980,6 +1016,14 @@ require_once 'includes/header.php';
                     <span class="media-type type-movie" style="margin-bottom: 5px;">🎬</span>
                     <h2 id="afishaTitle" class="modal-title"></h2>
                     <p id="afishaOriginal" style="color: #636e72; margin: 5px 0 0 0; font-weight: 500;"></p>
+                    <div id="afishaStatuses" style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                        <span id="afishaStatusLibrary" style="display:none; background:#dfe6e9; color:#2d3436; padding:4px 8px; border-radius:8px; font-weight:700; font-size:0.85rem;">
+                            <?= htmlspecialchars(t('item.in_library') ?? 'W bibliotece') ?>
+                        </span>
+                        <span id="afishaStatusWatch" style="display:none; background:#6c5ce7; color:white; padding:4px 8px; border-radius:8px; font-weight:700; font-size:0.85rem;">
+                            <?= htmlspecialchars(t('watchlist.added') ?? 'Na liście życzeń') ?>
+                        </span>
+                    </div>
                 </div>
                 <div id="afishaDate" style="font-weight: 800; color: #fdcb6e; background: #2d3436; padding: 5px 10px; border-radius: 10px; font-size: 0.9rem; white-space: nowrap;"></div>
             </div>
@@ -1027,6 +1071,8 @@ function openAfishaModal(card) {
     const poster   = card.getAttribute('data-poster') || '';
     const date     = card.getAttribute('data-release-date') || '';
     const voteAvg  = card.getAttribute('data-vote-average') || '';
+    const inWatch  = card.getAttribute('data-in-watchlist') === '1';
+    const inLib    = card.getAttribute('data-in-library') === '1';
 
     document.getElementById('afishaTitle').textContent = title;
     const origElem = document.getElementById('afishaOriginal');
@@ -1083,6 +1129,12 @@ function openAfishaModal(card) {
     } else {
         imgWrapper.style.display = 'none';
     }
+
+    // Statusy watchlist / biblioteka
+    const stLib = document.getElementById('afishaStatusLibrary');
+    const stWatch = document.getElementById('afishaStatusWatch');
+    if (stLib) stLib.style.display = inLib ? 'inline-flex' : 'none';
+    if (stWatch) stWatch.style.display = inWatch ? 'inline-flex' : 'none';
 
     document.getElementById('afishaModal').classList.add('open');
     document.body.style.overflow = 'hidden';

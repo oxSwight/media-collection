@@ -133,7 +133,7 @@ require_once 'includes/header.php';
                                 <div class="media-rating" aria-label="<?= htmlspecialchars(t('item.rating') ?? 'Рейтинг') ?>: <?= htmlspecialchars((string)$item['rating']) ?>/10"><?= htmlspecialchars((string)$item['rating']) ?>/10</div>
                                 <div class="media-actions" role="group" aria-label="<?= htmlspecialchars(t('item.actions') ?? 'Действия') ?>">
                                     <a href="edit_item.php?id=<?= $item['id'] ?>" class="btn-icon edit" aria-label="<?= htmlspecialchars(t('item.edit') ?? 'Редактировать') ?>" title="<?= htmlspecialchars(t('item.edit') ?? 'Редактировать') ?>">✎</a>
-                                    <form action="delete_item.php" method="POST" style="display: inline;" onsubmit="return confirm('<?= htmlspecialchars(t('item.delete_confirm') ?? 'Удалить?') ?>');">
+                                    <form action="delete_item.php" method="POST" style="display: inline;" onsubmit="return confirmDelete(event, '<?= htmlspecialchars(t('item.delete_confirm') ?? 'Usunąć?') ?>');">
                                         <?= csrf_input(); ?>
                                         <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
                                         <button type="submit" class="btn-icon delete" style="border: none; background: none; cursor: pointer;" aria-label="<?= htmlspecialchars(t('item.delete') ?? 'Удалить') ?>" title="<?= htmlspecialchars(t('item.delete') ?? 'Удалить') ?>">✕</button>

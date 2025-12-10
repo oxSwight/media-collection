@@ -86,6 +86,8 @@ function handle_image_upload(array $file, string $subDir = '', int $maxBytes = 2
         return [null, 'Nie udało się zapisać pliku.'];
     }
 
+    backup_upload($fullPath, $subDir, $filename);
+
     $relative = 'uploads';
     if ($subDir) {
         $relative .= '/' . $subDir;
@@ -182,6 +184,8 @@ function handle_image_from_url(string $imageUrl): ?string
         return null;
     }
 
+    backup_upload($fullPath, '', $filename);
+
     // Проверяем, что это действительно изображение
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime = $finfo->file($fullPath);
@@ -191,5 +195,47 @@ function handle_image_from_url(string $imageUrl): ?string
     }
 
     return 'uploads/' . $filename;
+}
+
+/**
+ * Создает резервную копию загруженного файла в uploads/_backup
+ */
+function backup_upload(string $fullPath, string $subDir, string $filename): void
+{
+    $backupRoot = uploads_root() . '/_backup';
+    if (!is_dir($backupRoot) && !mkdir($backupRoot, 0775, true) && !is_dir($backupRoot)) {
+        return;
+    }
+    $subDir = trim($subDir, '/');
+    $targetDir = $subDir ? $backupRoot . '/' . $subDir : $backupRoot;
+    if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+        return;
+    }
+    @copy($fullPath, $targetDir . '/' . $filename);
+}
+
+/**
+ * Проверяет существование файла uploads и при отсутствии восстанавливает из _backup
+ */
+function ensure_upload_exists(?string $relativePath): bool
+{
+    if (!$relativePath) return false;
+    if (str_starts_with($relativePath, 'http')) return true;
+    $relative = ltrim($relativePath, '/');
+    if (str_starts_with($relative, 'uploads/')) {
+        $relative = substr($relative, strlen('uploads/'));
+    }
+    $root = uploads_root();
+    $full = $root . '/' . $relative;
+    if (file_exists($full)) return true;
+
+    $backup = $root . '/_backup/' . $relative;
+    if (file_exists($backup)) {
+        @mkdir(dirname($full), 0775, true);
+        if (@copy($backup, $full)) {
+            return true;
+        }
+    }
+    return false;
 }
 

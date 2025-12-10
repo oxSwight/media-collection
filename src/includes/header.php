@@ -149,9 +149,73 @@ if ($myId) {
                 toggle.classList.remove('active');
             }
         });
+
+        // Custom confirm modal
+        let __confirmForm = null;
+        window.confirmDelete = function(event, message) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            __confirmForm = event?.target?.form || null;
+            if (!__confirmForm && event?.target?.closest) {
+                __confirmForm = event.target.closest('form');
+            }
+            const msgElem = document.getElementById('confirmMessage');
+            if (msgElem) msgElem.textContent = message || '';
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+            return false;
+        };
+        window.closeConfirmModal = function() {
+            const modal = document.getElementById('confirmModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            __confirmForm = null;
+        };
+        window.submitConfirmModal = function() {
+            if (__confirmForm) {
+                const modal = document.getElementById('confirmModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+                const form = __confirmForm;
+                __confirmForm = null;
+                form.submit();
+            } else {
+                closeConfirmModal();
+            }
+        };
+        window.confirmModalClick = function(event) {
+            if (event.target.id === 'confirmModal') {
+                closeConfirmModal();
+            }
+        };
     </script>
 </head>
 <body>
+    <!-- Global confirm dialog -->
+    <div id="confirmModal" class="modal-overlay" style="display:none;" onclick="confirmModalClick(event)">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-close" onclick="closeConfirmModal()">&times;</div>
+            <h3 id="confirmTitle" style="margin: 0 0 10px 0;"><?= htmlspecialchars(t('common.confirm') ?? 'Potwierdź') ?></h3>
+            <p id="confirmMessage" style="margin: 0 0 20px 0;"></p>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button type="button" class="btn-register" style="background:#dfe6e9; color:#2d3436;" onclick="closeConfirmModal()">
+                    <?= htmlspecialchars(t('item.cancel') ?? 'Anuluj') ?>
+                </button>
+                <button type="button" class="btn-register" style="background:#d63031;" onclick="submitConfirmModal()">
+                    <?= htmlspecialchars(t('item.delete') ?? 'Usuń') ?>
+                </button>
+            </div>
+        </div>
+    </div>
     <nav class="navbar">
         <div class="container">
             <div class="navbar-header">
@@ -230,7 +294,7 @@ if ($myId) {
                     <!-- Profil użytkownika -->
                     <li>
                         <a href="profile.php" class="<?= $currentPage === 'profile.php' ? 'nav-active' : '' ?>" style="display: flex; align-items: center;">
-                            <?php if ($avatarUrl): ?>
+                            <?php if ($avatarUrl && ensure_upload_exists($avatarUrl)): ?>
                                 <img src="<?= htmlspecialchars($avatarUrl) ?>" class="nav-avatar" alt="Avatar">
                             <?php else: ?>
                                 <div class="nav-avatar" style="background: #dfe6e9; display: flex; align-items: center; justify-content: center; color: #636e72; font-weight: bold;">
