@@ -55,6 +55,10 @@ return [
         'page' => 'Page',
         'of' => 'of',
     ],
+    'common' => [
+        'confirm' => 'Confirm',
+        'cancel' => 'Cancel',
+    ],
     'item' => [
         'add' => 'Add new movie or book',
         'edit' => 'Edit item',
@@ -74,6 +78,7 @@ return [
         'added_success' => 'Item added successfully!',
         'updated_success' => 'Updated successfully!',
         'delete_confirm' => 'Delete?',
+        'delete' => 'Delete',
         'not_found' => 'Item not found or access denied.',
         'from_afisha' => 'Adding movie from Afisha',
         'from_afisha_desc' => 'Data from Afisha has been pre-filled. You can edit it before saving.',

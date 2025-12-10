@@ -55,6 +55,10 @@ return [
         "page" => "Strona",
         "of" => "z",
     ],
+    'common' => [
+        'confirm' => 'Potwierdź',
+        'cancel' => 'Anuluj',
+    ],
     'item' => [
         'add' => 'Dodaj nowy film lub książkę',
         'edit' => 'Edytuj wpis',
@@ -74,6 +78,7 @@ return [
         'added_success' => 'Pomyślnie dodano nowy wpis!',
         'updated_success' => 'Zaktualizowano pomyślnie!',
         'delete_confirm' => 'Usunąć?',
+        'delete' => 'Usuń',
         'not_found' => 'Wpis nie znaleziony lub brak dostępu.',
         'from_afisha' => 'Dodajesz film z Afiszy',
         'from_afisha_desc' => 'Dane z Afiszy zostały wstępnie wypełnione. Możesz je edytować przed zapisaniem.',

@@ -208,7 +208,7 @@ if ($myId) {
             <p id="confirmMessage" style="margin: 0 0 20px 0;"></p>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
                 <button type="button" class="btn-register" style="background:#dfe6e9; color:#2d3436;" onclick="closeConfirmModal()">
-                    <?= htmlspecialchars(t('item.cancel') ?? 'Anuluj') ?>
+                    <?= htmlspecialchars(t('common.cancel') ?? t('item.cancel') ?? 'Anuluj') ?>
                 </button>
                 <button type="button" class="btn-register" style="background:#d63031;" onclick="submitConfirmModal()">
                     <?= htmlspecialchars(t('item.delete') ?? 'Usuń') ?>

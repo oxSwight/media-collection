@@ -6,7 +6,7 @@ function uploads_root(): string
     return dirname(__DIR__) . '/uploads';
 }
 
-function handle_image_upload(array $file, string $subDir = '', int $maxBytes = 2_000_000): array
+function handle_image_upload(array $file, string $subDir = '', int $maxBytes = 10_000_000): array
 {
     // Проверка ошибок загрузки
     if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -45,7 +45,8 @@ function handle_image_upload(array $file, string $subDir = '', int $maxBytes = 2
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
         'image/webp' => 'webp',
-        'image/gif'  => 'gif', // Добавляем поддержку GIF
+        'image/gif'  => 'gif',
+        'image/avif' => 'avif',
     ];
 
     // Проверка MIME типа через finfo (более надежно)
@@ -124,7 +125,7 @@ function safe_delete_upload(?string $relativePath): void
 /**
  * Сохраняет изображение из base64 data URL
  */
-function handle_base64_image_upload(string $dataUrl, string $subDir = '', int $maxBytes = 2_000_000): array
+function handle_base64_image_upload(string $dataUrl, string $subDir = '', int $maxBytes = 10_000_000): array
 {
     if (!str_starts_with($dataUrl, 'data:image/')) {
         return [null, 'Nieprawidłowy format obrazu.'];
@@ -145,6 +146,7 @@ function handle_base64_image_upload(string $dataUrl, string $subDir = '', int $m
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
         'image/webp' => 'webp',
+        'image/avif' => 'avif',
     ];
     if (!$mime || !isset($allowed[$mime])) {
         return [null, 'Dozwolone są tylko JPG, PNG lub WEBP.'];

@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $avatarPath = $stmt->fetchColumn();
 
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
-            [$newPath, $uploadError] = handle_image_upload($_FILES['avatar'], 'avatars', 1_500_000);
+            [$newPath, $uploadError] = handle_image_upload($_FILES['avatar'], 'avatars', 10_000_000);
             if ($uploadError) {
                 $error = $uploadError;
             } else {
