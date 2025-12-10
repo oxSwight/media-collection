@@ -6,8 +6,8 @@ $db   = getenv('DB_NAME');
 $user = getenv('DB_USER');
 $pass = getenv('DB_PASS');
 
-// Для Render и похожих облаков требуется SSL-подключение к PostgreSQL,
-// поэтому явно указываем sslmode=require.
+// Na Render i podobnych chmurach wymagane jest połączenie SSL z PostgreSQL,
+// dlatego jawnie ustawiamy sslmode=require.
 $dsn  = "pgsql:host=$host;port=5432;dbname=$db;sslmode=require";
 
 try {
@@ -17,16 +17,16 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 } catch (PDOException $e) {
-    // В продакшене лучше логировать ошибку в файл, а пользователю показывать "Упс"
+    // W produkcji lepiej logować błąd do pliku, a użytkownikowi pokazać ogólny komunikat
     $isProduction = getenv('APP_ENV') === 'production' || getenv('APP_ENV') === 'prod';
     
     if ($isProduction) {
-        // Логируем ошибку (если есть возможность)
+        // Logujemy błąd (jeśli to możliwe)
         error_log("Database connection error: " . $e->getMessage());
-        // Показываем пользователю общее сообщение
+        // Pokazujemy użytkownikowi ogólny komunikat
         die("Nie można połączyć się z bazą danych. Spróbuj ponownie później.");
     } else {
-        // В разработке показываем детали
+        // W środowisku deweloperskim pokazujemy szczegóły
         die("Nie można połączyć się z bazą danych: " . htmlspecialchars($e->getMessage()));
     }
 }

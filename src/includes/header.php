@@ -7,7 +7,7 @@ $avatarUrl = null;
 $myId = $_SESSION['user_id'] ?? 0;
 $isAdmin = !empty($_SESSION['is_admin']);
 
-// Определяем текущую страницу для активного состояния навигации
+// Ustalamy bieżącą stronę dla aktywnego stanu nawigacji
 $currentPage = basename($_SERVER['PHP_SELF']);
 
 if ($myId) {
@@ -15,7 +15,7 @@ if ($myId) {
     $stmt->execute([$myId]);
     $avatarUrl = $stmt->fetchColumn();
     
-    // Подсчитываем входящие запросы в друзья
+    // Liczymy oczekujące zaproszenia do znajomych
     $pendingRequestsStmt = $pdo->prepare("
         SELECT COUNT(*) 
         FROM friendships 

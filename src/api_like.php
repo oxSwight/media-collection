@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Rate limiting: 30 запросов в минуту для API
+// Rate limiting: 30 żądań na minutę dla API
 
 $rateLimitError = enforceRateLimit(30, 60);
 if ($rateLimitError) {
@@ -38,7 +38,7 @@ if ($mediaId <= 0) {
 }
 
 try {
-    // Проверяем, существует ли медиа-элемент и принадлежит ли он пользователю или его друзьям
+    // Sprawdzamy, czy element istnieje i należy do użytkownika lub jego znajomych
     $mediaCheck = $pdo->prepare("SELECT user_id FROM media_items WHERE id = ?");
     $mediaCheck->execute([$mediaId]);
     $mediaOwner = $mediaCheck->fetchColumn();
