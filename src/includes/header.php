@@ -28,7 +28,6 @@ if ($myId) {
 }
 ?>
 <!DOCTYPE html>
-<?php $isProfilePage = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) === 'profile.php'; ?>
 <html lang="<?= htmlspecialchars($currentLang) ?>">
 <head>
     <meta charset="UTF-8">
@@ -37,12 +36,6 @@ if ($myId) {
     <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token()) ?>">
     <title><?= htmlspecialchars(t('site.title')) ?></title>
     <link rel="stylesheet" href="/assets/css/style.css?v=2.2">
-    <?php if ($isProfilePage): ?>
-        <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
-    <?php endif; ?>
-    <?php if ($isProfilePage): ?>
-    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
-    <?php endif; ?>
     <script>
         // Ulepszony system zarządzania motywem
         (function() {
