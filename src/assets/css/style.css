@@ -1405,6 +1405,11 @@ a[href="add_item.php"]:hover,
     display: inline-block;
     cursor: pointer;
 }
+.profile-avatar-wrapper:focus-within,
+.profile-avatar-wrapper:focus {
+    outline: 3px solid rgba(108, 92, 231, 0.35);
+    border-radius: 50%;
+}
 .profile-avatar-wrapper .avatar-overlay {
     position: absolute;
     bottom: 0;

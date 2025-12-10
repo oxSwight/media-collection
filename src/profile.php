@@ -117,7 +117,9 @@ require_once 'includes/header.php';
         <div class="form-group">
             <label><?= htmlspecialchars(t('profile.avatar')) ?></label>
             <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none;">
-            <small style="color:#636e72; display:block; margin-top:6px;"><?= htmlspecialchars(t('profile.avatar_hint') ?? 'Kliknij na avatar, wybierz plik i zapisz.') ?></small>
+            <small style="color:#636e72; display:block; margin-top:6px;">
+                <?= htmlspecialchars(t('profile.avatar_hint') ?? 'Kliknij na avatar, wybierz plik i zapisz zmiany. Obsługiwane: JPG/PNG/WEBP.') ?>
+            </small>
         </div>
         
         <div class="form-group">
