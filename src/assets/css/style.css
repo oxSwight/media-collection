@@ -1455,7 +1455,12 @@ a[href="add_item.php"]:hover,
     color: #636e72;
 }
 .avatar-controls {
-    min-width: 180px;
+    min-width: 220px;
+}
+.avatar-controls-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 

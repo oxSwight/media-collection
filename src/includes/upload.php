@@ -122,6 +122,77 @@ function safe_delete_upload(?string $relativePath): void
 }
 
 /**
+ * Сохраняет изображение из base64 data URL
+ */
+function handle_base64_image_upload(string $dataUrl, string $subDir = '', int $maxBytes = 2_000_000): array
+{
+    if (!str_starts_with($dataUrl, 'data:image/')) {
+        return [null, 'Nieprawidłowy format obrazu.'];
+    }
+
+    // data:image/png;base64,....
+    [$meta, $encoded] = explode(',', $dataUrl, 2) + [null, null];
+    if (!$encoded) {
+        return [null, 'Nieprawidłowy obraz.'];
+    }
+
+    $mime = null;
+    if (preg_match('#data:(image/[\w+.-]+);base64#', $meta, $m)) {
+        $mime = strtolower($m[1]);
+    }
+
+    $allowed = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+    if (!$mime || !isset($allowed[$mime])) {
+        return [null, 'Dozwolone są tylko JPG, PNG lub WEBP.'];
+    }
+
+    $binary = base64_decode($encoded, true);
+    if ($binary === false) {
+        return [null, 'Nie udało się odczytać obrazu.'];
+    }
+
+    if (strlen($binary) > $maxBytes) {
+        $maxSizeMB = round($maxBytes / 1024 / 1024, 1);
+        return [null, "Plik jest zbyt duży (max {$maxSizeMB}MB)."];
+    }
+
+    $root = uploads_root();
+    $subDir = trim($subDir, '/');
+    $targetDir = $subDir ? $root . '/' . $subDir : $root;
+
+    if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+        return [null, 'Nie udało się utworzyć katalogu na pliki.'];
+    }
+
+    $filename = uniqid('img_', true) . '.' . $allowed[$mime];
+    $fullPath = $targetDir . '/' . $filename;
+
+    if (file_put_contents($fullPath, $binary) === false) {
+        return [null, 'Nie udało się zapisać pliku.'];
+    }
+
+    // Верифицируем, что это изображение
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $realMime = $finfo->file($fullPath) ?: '';
+    if ($realMime !== $mime) {
+        @unlink($fullPath);
+        return [null, 'Nieprawidłowy typ obrazu.'];
+    }
+
+    backup_upload($fullPath, $subDir, $filename);
+
+    $relative = 'uploads';
+    if ($subDir) {
+        $relative .= '/' . $subDir;
+    }
+    return [$relative . '/' . $filename, null];
+}
+
+/**
  * Скачивает изображение по URL и сохраняет локально
  * @param string $imageUrl URL изображения
  * @return string|null Относительный путь к сохраненному файлу или null при ошибке

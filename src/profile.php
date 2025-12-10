@@ -29,7 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$userId]);
         $avatarPath = $stmt->fetchColumn();
 
-        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $croppedData = $_POST['avatar_cropped'] ?? null;
+        if ($croppedData && str_starts_with($croppedData, 'data:image/')) {
+            [$newPath, $uploadError] = handle_base64_image_upload($croppedData, 'avatars', 1_500_000);
+            if ($uploadError) {
+                $error = $uploadError;
+            } else {
+                safe_delete_upload($avatarPath);
+                $avatarPath = $newPath;
+            }
+        } elseif (isset($_FILES['avatar']) && $_FILES['avatar']['error'] !== UPLOAD_ERR_NO_FILE) {
             [$newPath, $uploadError] = handle_image_upload($_FILES['avatar'], 'avatars', 1_500_000);
             if ($uploadError) {
                 $error = $uploadError;
@@ -117,21 +126,25 @@ require_once 'includes/header.php';
         <div class="form-group">
             <label><?= htmlspecialchars(t('profile.avatar')) ?></label>
             <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none;">
+            <input type="hidden" name="avatar_cropped" id="avatarCropped">
             <div class="avatar-editor">
                 <div class="avatar-preview-frame">
-                    <img id="avatarPreviewSmall" src="<?= htmlspecialchars($user['avatar_path'] ?: '') ?>" alt="" style="display: <?= $user['avatar_path'] ? 'block' : 'none' ?>;">
+                    <img id="avatarCropImage" src="<?= htmlspecialchars($user['avatar_path'] ?: '') ?>" alt="" style="display: <?= $user['avatar_path'] ? 'block' : 'none' ?>; max-width:100%;">
                     <?php if (!$user['avatar_path']): ?>
                         <div id="avatarPreviewPlaceholder" class="avatar-placeholder"><?= htmlspecialchars(strtoupper(substr($user['username'], 0, 1))) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="avatar-controls">
-                    <label style="display:block; font-size: 0.9rem;"><?= htmlspecialchars(t('profile.zoom') ?? 'Powiększenie') ?></label>
-                    <input type="range" id="avatarZoom" min="1" max="2.5" step="0.01" value="1">
-                    <label style="display:block; font-size: 0.9rem; margin-top:8px;"><?= htmlspecialchars(t('profile.rotate') ?? 'Obrót') ?></label>
-                    <input type="range" id="avatarRotate" min="-15" max="15" step="0.5" value="0">
+                    <div class="avatar-controls-row">
+                        <button type="button" class="btn-register" onclick="cropperZoom(0.1)">+</button>
+                        <button type="button" class="btn-register" onclick="cropperZoom(-0.1)">-</button>
+                        <button type="button" class="btn-register" onclick="cropperRotate(-15)">⟲</button>
+                        <button type="button" class="btn-register" onclick="cropperRotate(15)">⟳</button>
+                        <button type="button" class="btn-register" onclick="cropperReset()"><?= htmlspecialchars(t('profile.reset') ?? 'Reset') ?></button>
+                    </div>
+                    <small style="color:#636e72; display:block; margin-top:6px;"><?= htmlspecialchars(t('profile.avatar_hint') ?? 'Kliknij na avatar, wybierz plik, przytnij i zapisz.') ?></small>
                 </div>
             </div>
-            <small style="color:#636e72; display:block; margin-top:6px;"><?= htmlspecialchars(t('profile.avatar_hint') ?? 'Kliknij na avatar lub ramkę, aby wybrać zdjęcie. Przeciągaj obraz w ramce, użyj suwaków powiększenia i obrotu do podglądu. Zapisywany jest oryginalny plik.') ?></small>
         </div>
         
         <div class="form-group">
@@ -165,42 +178,45 @@ function triggerAvatarSelect() {
     if (input) input.click();
 }
 
+let avatarCropper = null;
+
+function destroyCropper() {
+    if (avatarCropper) {
+        avatarCropper.destroy();
+        avatarCropper = null;
+    }
+}
+
+function cropperZoom(delta) {
+    if (avatarCropper) avatarCropper.zoom(delta);
+}
+function cropperRotate(deg) {
+    if (avatarCropper) avatarCropper.rotate(deg);
+}
+function cropperReset() {
+    if (avatarCropper) avatarCropper.reset();
+}
+
 (function setupAvatarEditor() {
     const input = document.getElementById('avatarInput');
-    const previewMain = document.getElementById('avatarPreview');
-    const previewSmall = document.getElementById('avatarPreviewSmall');
+    const img = document.getElementById('avatarCropImage');
     const placeholder = document.getElementById('avatarPreviewPlaceholder');
-    const zoom = document.getElementById('avatarZoom');
-    const rotate = document.getElementById('avatarRotate');
-    let offsetX = 0;
-    let offsetY = 0;
-    let startX = 0;
-    let startY = 0;
-    let dragging = false;
+    const hidden = document.getElementById('avatarCropped');
+    const form = document.querySelector('form[action="profile.php"]');
 
-    function applyTransform() {
-        const scale = parseFloat(zoom?.value || '1');
-        const rot = parseFloat(rotate?.value || '0');
-        const transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale}) rotate(${rot}deg)`;
-        if (previewSmall) previewSmall.style.transform = transform;
-        if (previewMain && previewMain.tagName === 'IMG') previewMain.style.transform = transform;
-    }
-
-    function setImage(src) {
-        if (previewSmall) {
-            previewSmall.src = src;
-            previewSmall.style.display = 'block';
-        }
-        if (placeholder) {
-            placeholder.style.display = 'none';
-        }
-        if (previewMain && previewMain.tagName === 'IMG') {
-            previewMain.src = src;
-        }
-        offsetX = 0; offsetY = 0;
-        if (zoom) zoom.value = '1';
-        if (rotate) rotate.value = '0';
-        applyTransform();
+    function initCropper() {
+        destroyCropper();
+        if (!img.getAttribute('src')) return;
+        avatarCropper = new Cropper(img, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 1,
+            background: false,
+            responsive: true,
+            minContainerWidth: 240,
+            minContainerHeight: 240,
+        });
     }
 
     if (input) {
@@ -213,44 +229,35 @@ function triggerAvatarSelect() {
             }
             const reader = new FileReader();
             reader.onload = () => {
-                setImage(reader.result);
+                if (placeholder) placeholder.style.display = 'none';
+                img.style.display = 'block';
+                img.src = reader.result;
+                setTimeout(initCropper, 10);
             };
             reader.readAsDataURL(file);
         });
     }
 
-    if (zoom) zoom.addEventListener('input', applyTransform);
-    if (rotate) rotate.addEventListener('input', applyTransform);
+    // Przy pierwszym załadowaniu (jeśli już jest avatar)
+    if (img && img.getAttribute('src')) {
+        setTimeout(initCropper, 10);
+    }
 
-    const frame = document.querySelector('.avatar-preview-frame');
-    if (frame) {
-        frame.addEventListener('mousedown', (e) => {
-            dragging = true;
-            startX = e.clientX - offsetX;
-            startY = e.clientY - offsetY;
-            e.preventDefault();
+    // Przechwytujemy submit: zapisujemy przycięty obraz do hidden input
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            if (avatarCropper) {
+                const canvas = avatarCropper.getCroppedCanvas({
+                    width: 400,
+                    height: 400,
+                    imageSmoothingQuality: 'high'
+                });
+                if (canvas) {
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    hidden.value = dataUrl;
+                }
+            }
         });
-        frame.addEventListener('touchstart', (e) => {
-            dragging = true;
-            const t = e.touches[0];
-            startX = t.clientX - offsetX;
-            startY = t.clientY - offsetY;
-        }, {passive: true});
-        window.addEventListener('mousemove', (e) => {
-            if (!dragging) return;
-            offsetX = e.clientX - startX;
-            offsetY = e.clientY - startY;
-            applyTransform();
-        });
-        window.addEventListener('touchmove', (e) => {
-            if (!dragging) return;
-            const t = e.touches[0];
-            offsetX = t.clientX - startX;
-            offsetY = t.clientY - startY;
-            applyTransform();
-        }, {passive: true});
-        window.addEventListener('mouseup', () => dragging = false);
-        window.addEventListener('touchend', () => dragging = false);
     }
 })();
 </script>
