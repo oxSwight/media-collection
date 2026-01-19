@@ -112,20 +112,25 @@ function jsonSuccess(array $data = [], int $code = 200): void
  */
 function globalExceptionHandler(Throwable $e): void
 {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
     logError('Uncaught exception: ' . $e->getMessage(), [
         'file' => $e->getFile(),
         'line' => $e->getLine(),
         'trace' => $e->getTraceAsString()
     ]);
 
-    // Стараемся не оставлять пользователя на "пустой" странице с трассировкой
     if (!headers_sent()) {
         http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
     }
 
     $isProduction = getenv('APP_ENV') === 'production' || getenv('APP_ENV') === 'prod';
     $message = 'Coś poszło nie tak. Spróbuj ponownie później.';
 
+    echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Błąd</title></head><body>";
     echo "<div class='error-msg' style=\"max-width:600px;margin:40px auto;padding:20px;border-radius:8px;background:#ffecec;color:#c0392b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:center;\">";
     echo htmlspecialchars($message);
 
@@ -136,11 +141,29 @@ function globalExceptionHandler(Throwable $e): void
     }
 
     $backUrl = $_SERVER['HTTP_REFERER'] ?? 'index.php';
-    $backUrlEsc = htmlspecialchars($backUrl);
+    if (!filter_var($backUrl, FILTER_VALIDATE_URL) || (parse_url($backUrl, PHP_URL_HOST) ?? '') === ($_SERVER['HTTP_HOST'] ?? '')) {
+        $backUrlEsc = htmlspecialchars($backUrl);
+    } else {
+        $backUrlEsc = 'index.php';
+    }
     echo "<div style='margin-top:15px;'><a href=\"{$backUrlEsc}\" style=\"color:#2980b9;text-decoration:underline;\">Wróć na poprzednią stronę</a></div>";
     echo "</div>";
+    echo "</body></html>";
 
     exit;
+}
+
+/**
+ * Обработчик фатальных ошибок
+ */
+function fatalErrorHandler(int $errno, string $errstr, string $errfile, int $errline): bool
+{
+    if (!(error_reporting() & $errno)) {
+        return false;
+    }
+    $e = new ErrorException($errstr, 0, $errno, $errfile, $errline);
+    globalExceptionHandler($e);
+    return true;
 }
 
 /**
@@ -149,4 +172,12 @@ function globalExceptionHandler(Throwable $e): void
 function registerErrorHandlers(): void
 {
     set_exception_handler('globalExceptionHandler');
+    set_error_handler('fatalErrorHandler', E_ALL | E_STRICT);
+    register_shutdown_function(function() {
+        $error = error_get_last();
+        if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_RECOVERABLE_ERROR])) {
+            $e = new ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']);
+            globalExceptionHandler($e);
+        }
+    });
 }
