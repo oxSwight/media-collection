@@ -18,10 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = t('auth.invalid_email');
     }
     else {
-        try {
-            // Проверка, не занят ли email (оптимистичная проверка для UX)
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-            $stmt->execute([$email]);
+        // Проверяем, что $pdo определён
+        if (!isset($pdo) || !($pdo instanceof PDO)) {
+            $error = 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie później.';
+            if (function_exists('logError')) {
+                logError('PDO not initialized in register.php');
+            }
+        } else {
+            try {
+                // Проверка, не занят ли email (оптимистичная проверка для UX)
+                $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+                $stmt->execute([$email]);
             
             if ($stmt->rowCount() > 0) {
                 $error = t('auth.email_taken');
@@ -77,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Другая ошибка БД (например, таблица не существует)
                 $error = 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie później.';
+            }
             }
         }
     }
