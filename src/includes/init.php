@@ -20,3 +20,7 @@ require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/error_handler.php';
 require_once __DIR__ . '/rate_limit.php';
 
+// Регистрируем глобальные обработчики ошибок/исключений
+if (function_exists('registerErrorHandlers')) {
+    registerErrorHandlers();
+}

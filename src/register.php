@@ -18,56 +18,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = t('auth.invalid_email');
     }
     else {
-        // Проверка, не занят ли email (оптимистичная проверка для UX)
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        
-        if ($stmt->rowCount() > 0) {
-            $error = t('auth.email_taken');
-        } else {
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        try {
+            // Проверка, не занят ли email (оптимистичная проверка для UX)
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
             
-            // Генерируем уникальный Friend Code (6 символов)
-            // Используем цикл для гарантии уникальности
-            $maxAttempts = 10;
-            $friendCode = null;
-            for ($i = 0; $i < $maxAttempts; $i++) {
-                $candidate = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
-                $checkStmt = $pdo->prepare("SELECT id FROM users WHERE friend_code = ?");
-                $checkStmt->execute([$candidate]);
-                if ($checkStmt->rowCount() === 0) {
-                    $friendCode = $candidate;
-                    break;
-                }
-            }
-            
-            if ($friendCode === null) {
-                $error = t('common.error');
+            if ($stmt->rowCount() > 0) {
+                $error = t('auth.email_taken');
             } else {
-                try {
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                
+                // Генерируем уникальный Friend Code (6 символов)
+                // Используем цикл для гарантии уникальности
+                $maxAttempts = 10;
+                $friendCode = null;
+                for ($i = 0; $i < $maxAttempts; $i++) {
+                    $candidate = strtoupper(substr(md5(uniqid(rand(), true)), 0, 6));
+                    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE friend_code = ?");
+                    $checkStmt->execute([$candidate]);
+                    if ($checkStmt->rowCount() === 0) {
+                        $friendCode = $candidate;
+                        break;
+                    }
+                }
+                
+                if ($friendCode === null) {
+                    $error = t('common.error');
+                } else {
                     $stmt = $pdo->prepare("INSERT INTO users (username, email, password, friend_code) VALUES (?, ?, ?, ?)");
                     $stmt->execute([$username, $email, $hashedPassword, $friendCode]);
                     
                     // Успешная регистрация
                     header("Location: login.php?registered=1");
                     exit;
-                } catch (PDOException $e) {
-                    // Обработка race condition: если email уже существует (код 23505 - unique violation в PostgreSQL)
-                    // В PostgreSQL код ошибки может быть строкой '23505' или числом 23505
-                    $errorCode = $e->getCode();
-                    $errorMessage = strtolower($e->getMessage());
-                    
-                    if ($errorCode == '23505' || $errorCode == 23505 || 
-                        strpos($errorMessage, 'unique') !== false || 
-                        strpos($errorMessage, 'duplicate') !== false ||
-                        strpos($errorMessage, 'violates unique constraint') !== false) {
-                        $error = t('auth.email_taken');
-                    } else {
-                        // Другая ошибка БД
-                        error_log("Registration error: " . $e->getMessage() . " (Code: " . $errorCode . ")");
-                        $error = t('common.error');
-                    }
                 }
+            }
+        } catch (PDOException $e) {
+            // Логируем ошибку БД
+            if (function_exists('logError')) {
+                logError('Registration database error: ' . $e->getMessage(), [
+                    'email' => $email,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
+            } else {
+                error_log("Registration error: " . $e->getMessage());
+            }
+            
+            // Обработка race condition: если email уже существует (код 23505 - unique violation в PostgreSQL)
+            $errorCode = $e->getCode();
+            $errorMessage = strtolower($e->getMessage());
+            
+            if ($errorCode == '23505' || $errorCode == 23505 || 
+                strpos($errorMessage, 'unique') !== false || 
+                strpos($errorMessage, 'duplicate') !== false ||
+                strpos($errorMessage, 'violates unique constraint') !== false) {
+                $error = t('auth.email_taken');
+            } else {
+                // Другая ошибка БД (например, таблица не существует)
+                $error = 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie później.';
             }
         }
     }

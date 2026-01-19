@@ -19,10 +19,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($email) || empty($password)) {
         $error = t('auth.email_required');
     } else {
-        // ИСПРАВЛЕНИЕ: Добавили is_admin в список выбираемых полей
-        $stmt = $pdo->prepare("SELECT id, username, password, is_admin FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        try {
+            // Добавили is_admin в список выбираемых полей
+            $stmt = $pdo->prepare("SELECT id, username, password, is_admin FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+        } catch (PDOException $e) {
+            // Логируем и показываем аккуратный коммуникат вместо фатальной ошибки
+            logError('Login query failed: ' . $e->getMessage(), ['email' => $email]);
+            $error = 'Wystąpił błąd podczas logowania. Spróbuj ponownie później.';
+            $user = false;
+        }
 
         // Проверка пароля
         if ($user && password_verify($password, $user['password'])) {

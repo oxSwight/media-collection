@@ -51,12 +51,12 @@ function showError(string $userMessage, ?string $internalMessage = null, array $
 }
 
 /**
- * Обработчик исключений для PDO
+ * Обработчик исключений для PDO (точечное использование в коде)
  * 
  * @param PDOException $e
  * @param string $userMessage
  */
-function handleDatabaseError(PDOException $e, string $userMessage = 'Ошибка базы данных'): void
+function handleDatabaseError(PDOException $e, string $userMessage = 'Wystąpił błąd bazy danych. Spróbuj ponownie później.'): void
 {
     logError('Database error: ' . $e->getMessage(), [
         'file' => $e->getFile(),
@@ -105,3 +105,48 @@ function jsonSuccess(array $data = [], int $code = 200): void
     exit;
 }
 
+/**
+ * Глобальный обработчик необработанных исключений
+ * 
+ * @param Throwable $e
+ */
+function globalExceptionHandler(Throwable $e): void
+{
+    logError('Uncaught exception: ' . $e->getMessage(), [
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'trace' => $e->getTraceAsString()
+    ]);
+
+    // Стараемся не оставлять пользователя на "пустой" странице с трассировкой
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+
+    $isProduction = getenv('APP_ENV') === 'production' || getenv('APP_ENV') === 'prod';
+    $message = 'Coś poszło nie tak. Spróbuj ponownie później.';
+
+    echo "<div class='error-msg' style=\"max-width:600px;margin:40px auto;padding:20px;border-radius:8px;background:#ffecec;color:#c0392b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:center;\">";
+    echo htmlspecialchars($message);
+
+    if (!$isProduction) {
+        echo "<div style='margin-top:10px;font-size:0.85rem;color:#7f8c8d;'>"
+            . htmlspecialchars($e->getMessage())
+            . "</div>";
+    }
+
+    $backUrl = $_SERVER['HTTP_REFERER'] ?? 'index.php';
+    $backUrlEsc = htmlspecialchars($backUrl);
+    echo "<div style='margin-top:15px;'><a href=\"{$backUrlEsc}\" style=\"color:#2980b9;text-decoration:underline;\">Wróć na poprzednią stronę</a></div>";
+    echo "</div>";
+
+    exit;
+}
+
+/**
+ * Регистрация глобальных обработчиков ошибок / исключений
+ */
+function registerErrorHandlers(): void
+{
+    set_exception_handler('globalExceptionHandler');
+}
