@@ -1,12 +1,29 @@
 <?php
+// Получаем переменную окружения, которую ты только что настроил в Render
 $url = getenv('DATABASE_URL');
+
+if (!$url) {
+    die("❌ Ошибка: Переменная DATABASE_URL не найдена! Проверь вкладку Environment.");
+}
+
+// Разбираем URL на компоненты
 $dbopts = parse_url($url);
-$dsn = sprintf("pgsql:host=%s;port=%d;dbname=%s", $dbopts['host'], $dbopts['port'], ltrim($dbopts['path'], '/'));
+
+// Формируем DSN. Render требует SSL, поэтому добавляем sslmode=require принудительно
+$dsn = sprintf(
+    "pgsql:host=%s;port=%d;dbname=%s;sslmode=require",
+    $dbopts['host'],
+    $dbopts['port'] ?? 5432,
+    ltrim($dbopts['path'], '/')
+);
 
 try {
-    $pdo = new PDO($dsn, $dbopts['user'], $dbopts['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $pdo = new PDO($dsn, $dbopts['user'], $dbopts['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
     
     $sql = "
+    -- 1. ПОЛЬЗОВАТЕЛИ
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) NOT NULL UNIQUE,
@@ -25,6 +42,7 @@ try {
     CREATE INDEX IF NOT EXISTS idx_users_friend_code ON users(friend_code);
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
+    -- 2. МЕДИА-КОЛЛЕКЦИЯ
     CREATE TABLE IF NOT EXISTS media_items (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -42,6 +60,7 @@ try {
     CREATE INDEX IF NOT EXISTS idx_media_user_created ON media_items(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_media_type ON media_items(type);
 
+    -- 3. ЛАЙКИ
     CREATE TABLE IF NOT EXISTS likes (
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         media_id INTEGER NOT NULL REFERENCES media_items(id) ON DELETE CASCADE,
@@ -50,6 +69,7 @@ try {
     );
     CREATE INDEX IF NOT EXISTS idx_likes_media ON likes(media_id);
 
+    -- 4. ДРУЖБА
     CREATE TABLE IF NOT EXISTS friendships (
         id SERIAL PRIMARY KEY,
         requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -59,6 +79,7 @@ try {
         UNIQUE(requester_id, receiver_id)
     );
 
+    -- 5. АКТИВНОСТЬ
     CREATE TABLE IF NOT EXISTS activities (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -67,6 +88,7 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 6. АФИША
     CREATE TABLE IF NOT EXISTS upcoming_movies (
         id SERIAL PRIMARY KEY,
         external_id VARCHAR(50) NOT NULL UNIQUE,
@@ -81,6 +103,7 @@ try {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 7. WATCHLIST
     CREATE TABLE IF NOT EXISTS watchlist (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -94,7 +117,7 @@ try {
     ";
 
     $pdo->exec($sql);
-    echo "✅ Все таблицы и индексы успешно созданы!";
+    echo "✅ Все таблицы и индексы успешно созданы для базы данных на Render!";
 } catch (Exception $e) {
-    echo "❌ Ошибка: " . $e->getMessage();
+    echo "❌ Ошибка при инициализации базы: " . $e->getMessage();
 }
